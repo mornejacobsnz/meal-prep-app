@@ -1,0 +1,82 @@
+'use client'
+import { WeeklyPlan, Recipe, DayOfWeek, MealType } from '@/lib/types'
+import { X, UtensilsCrossed } from 'lucide-react'
+
+interface Props {
+  plan: WeeklyPlan
+  onUpdate: (plan: WeeklyPlan) => void
+  onSlotClick: (day: DayOfWeek, mealType: MealType) => void
+}
+
+const DAYS: DayOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+const DAY_SHORT: Record<DayOfWeek, string> = {
+  Monday: 'Mon', Tuesday: 'Tue', Wednesday: 'Wed', Thursday: 'Thu',
+  Friday: 'Fri', Saturday: 'Sat', Sunday: 'Sun'
+}
+
+export default function WeeklyPlanner({ plan, onUpdate, onSlotClick }: Props) {
+  const removeRecipe = (day: DayOfWeek, mealType: MealType) => {
+    const updated: WeeklyPlan = {
+      ...plan,
+      slots: plan.slots.map(slot =>
+        slot.day === day && slot.mealType === mealType ? { ...slot, recipe: null } : slot
+      ),
+    }
+    onUpdate(updated)
+  }
+
+  const getSlot = (day: DayOfWeek, mealType: MealType) =>
+    plan.slots.find(s => s.day === day && s.mealType === mealType)
+
+  const totalCost = plan.slots.reduce((sum, slot) => sum + (slot.recipe?.estimatedCostNZD ?? 0), 0)
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="font-bold text-gray-900">This Week</h2>
+        <span className="text-sm font-semibold text-emerald-600">${totalCost.toFixed(0)} NZD total</span>
+      </div>
+
+      <div className="space-y-2">
+        {DAYS.map(day => (
+          <div key={day} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
+              <span className="font-semibold text-sm text-gray-700">{day}</span>
+            </div>
+            <div className="grid grid-cols-2 divide-x divide-gray-100">
+              {(['lunch', 'dinner'] as MealType[]).map(mealType => {
+                const slot = getSlot(day, mealType)
+                const recipe = slot?.recipe
+                return (
+                  <div key={mealType} className="p-3">
+                    <div className="text-xs font-medium text-gray-400 uppercase mb-1.5">{mealType}</div>
+                    {recipe ? (
+                      <div className="relative group">
+                        <div className="text-sm font-medium text-gray-800 leading-tight pr-5">{recipe.name}</div>
+                        <div className="text-xs text-gray-400 mt-0.5">${recipe.estimatedCostNZD.toFixed(0)} · {recipe.totalTime}min</div>
+                        <button
+                          onClick={() => removeRecipe(day, mealType)}
+                          className="absolute top-0 right-0 p-0.5 text-gray-300 hover:text-red-400 transition-colors"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => onSlotClick(day, mealType)}
+                        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 text-xs hover:border-emerald-300 hover:text-emerald-500 transition-colors"
+                      >
+                        <UtensilsCrossed size={12} />
+                        Add meal
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
