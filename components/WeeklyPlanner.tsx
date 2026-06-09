@@ -1,6 +1,6 @@
 'use client'
 import { WeeklyPlan, DayOfWeek, MealType } from '@/lib/types'
-import { X, UtensilsCrossed, Sparkles } from 'lucide-react'
+import { X, UtensilsCrossed, Sparkles, RefreshCw } from 'lucide-react'
 
 interface Props {
   plan: WeeklyPlan
@@ -93,14 +93,24 @@ export default function WeeklyPlanner({ plan, onUpdate, onSlotClick, activeDays,
                     <div className="text-xs font-medium text-gray-400 uppercase mb-1.5">{mealType}</div>
                     {recipe ? (
                       <div className="relative group">
-                        <div className="text-sm font-medium text-gray-800 leading-tight pr-5">{recipe.name}</div>
+                        <div className="text-sm font-medium text-gray-800 leading-tight pr-10">{recipe.name}</div>
                         <div className="text-xs text-gray-400 mt-0.5">${recipe.estimatedCostNZD.toFixed(0)} · {recipe.totalTime}min</div>
-                        <button
-                          onClick={() => removeRecipe(day, mealType)}
-                          className="absolute top-0 right-0 p-0.5 text-gray-300 hover:text-red-400 transition-colors"
-                        >
-                          <X size={14} />
-                        </button>
+                        <div className="absolute top-0 right-0 flex gap-0.5">
+                          <button
+                            onClick={() => onSlotClick(day, mealType)}
+                            className="p-0.5 text-gray-300 hover:text-indigo-400 transition-colors"
+                            title="Replace meal"
+                          >
+                            <RefreshCw size={12} />
+                          </button>
+                          <button
+                            onClick={() => removeRecipe(day, mealType)}
+                            className="p-0.5 text-gray-300 hover:text-red-400 transition-colors"
+                            title="Remove meal"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <button

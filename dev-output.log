@@ -249,3 +249,11 @@ Recipe generation error: SyntaxError: Expected ',' or '}' after property value i
   95 |     console.error('Recipe generation error:', error)
  POST /api/generate-recipes 500 in 40s (next.js: 91ms, application-code: 40s)
  POST /api/generate-recipes 200 in 36.9s (next.js: 102ms, application-code: 36.8s)
+✓ Compiled in 67ms
+ GET / 200 in 134ms (next.js: 97ms, application-code: 38ms)
+✓ Compiled in 143ms
+ GET / 200 in 241ms (next.js: 153ms, application-code: 88ms)
+ GET / 200 in 62ms (next.js: 4ms, application-code: 58ms)
+ GET / 200 in 28ms (next.js: 4ms, application-code: 24ms)
+✓ Compiled in 50ms
+ GET / 200 in 187ms (next.js: 119ms, application-code: 68ms)

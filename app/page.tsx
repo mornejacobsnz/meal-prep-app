@@ -135,10 +135,11 @@ export default function Home() {
     if (!weeklyPlan) return
     setSmartFilling(true)
     try {
+      const smartSettings = { ...settings, filters: { ...settings.filters, mealType: 'both' as const } }
       const res = await fetch('/api/smart-fill', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tasteMemory, settings }),
+        body: JSON.stringify({ tasteMemory, settings: smartSettings }),
       })
       if (!res.ok) throw new Error('Smart fill failed')
       const { assignedRecipes } = await res.json()
@@ -179,17 +180,24 @@ export default function Home() {
             <h1 className="text-xl font-bold text-gray-900">Meal Prep</h1>
             <p className="text-xs text-gray-400">Budget: ${settings.weeklyBudgetNZD} NZD/week</p>
           </div>
-          {addToSlot && (
-            <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1.5">
-              <span className="text-xs font-medium text-emerald-700">
-                Adding to {addToSlot.day} {addToSlot.mealType}
-              </span>
-              <button onClick={() => setAddToSlot(null)}>
-                <X size={12} className="text-emerald-500" />
-              </button>
-            </div>
-          )}
         </div>
+        {addToSlot && (
+          <div className="flex items-center justify-between bg-indigo-500 rounded-xl px-3 py-2 mt-1">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+              <span className="text-sm font-semibold text-white">
+                Pick a recipe for {addToSlot.day} {addToSlot.mealType}
+              </span>
+            </div>
+            <button
+              onClick={() => { setAddToSlot(null); setTab('planner') }}
+              className="flex items-center gap-1 text-indigo-200 hover:text-white text-xs font-medium transition-colors"
+            >
+              <X size={12} />
+              Cancel
+            </button>
+          </div>
+        )}
       </header>
 
       {/* Content */}
