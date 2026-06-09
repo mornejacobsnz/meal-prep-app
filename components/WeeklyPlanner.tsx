@@ -1,6 +1,6 @@
 'use client'
-import { WeeklyPlan, Recipe, DayOfWeek, MealType } from '@/lib/types'
-import { X, UtensilsCrossed } from 'lucide-react'
+import { WeeklyPlan, DayOfWeek, MealType } from '@/lib/types'
+import { X, UtensilsCrossed, Sparkles } from 'lucide-react'
 
 interface Props {
   plan: WeeklyPlan
@@ -8,6 +8,8 @@ interface Props {
   onSlotClick: (day: DayOfWeek, mealType: MealType) => void
   activeDays: DayOfWeek[]
   onActiveDaysChange: (days: DayOfWeek[]) => void
+  onSmartFill: () => void
+  smartFilling: boolean
 }
 
 const ALL_DAYS: DayOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -16,7 +18,7 @@ const DAY_SHORT: Record<DayOfWeek, string> = {
   Friday: 'Fri', Saturday: 'Sat', Sunday: 'Sun'
 }
 
-export default function WeeklyPlanner({ plan, onUpdate, onSlotClick, activeDays, onActiveDaysChange }: Props) {
+export default function WeeklyPlanner({ plan, onUpdate, onSlotClick, activeDays, onActiveDaysChange, onSmartFill, smartFilling }: Props) {
   const removeRecipe = (day: DayOfWeek, mealType: MealType) => {
     const updated: WeeklyPlan = {
       ...plan,
@@ -46,7 +48,17 @@ export default function WeeklyPlanner({ plan, onUpdate, onSlotClick, activeDays,
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="font-bold text-gray-900">This Week</h2>
-        <span className="text-sm font-semibold text-emerald-600">${totalCost.toFixed(0)} NZD total</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-semibold text-emerald-600">${totalCost.toFixed(0)} NZD</span>
+          <button
+            onClick={onSmartFill}
+            disabled={smartFilling}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-500 text-white text-sm font-semibold shadow-sm hover:bg-violet-600 transition-colors disabled:opacity-60"
+          >
+            <Sparkles size={14} className={smartFilling ? 'animate-pulse' : ''} />
+            {smartFilling ? 'Planning...' : 'Smart Fill'}
+          </button>
+        </div>
       </div>
 
       {/* Day picker */}

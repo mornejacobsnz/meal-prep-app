@@ -19,6 +19,7 @@ export default function Home() {
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlan | null>(null)
   const [tasteMemory, setTasteMemory] = useState<TasteMemory>({ liked: [], disliked: [], likedIngredients: [], dislikedIngredients: [], history: [] })
   const [loading, setLoading] = useState(false)
+  const [smartFilling, setSmartFilling] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [addToSlot, setAddToSlot] = useState<{ day: DayOfWeek; mealType: MealType } | null>(null)
   const [mounted, setMounted] = useState(false)
@@ -129,6 +130,36 @@ export default function Home() {
     const updated = { ...settings, activeDays: days }
     saveSettings(updated)
   }
+
+  const handleSmartFill = useCallback(async () => {
+    if (!weeklyPlan) return
+    setSmartFilling(true)
+    try {
+      const res = await fetch('/api/smart-fill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tasteMemory, settings }),
+      })
+      if (!res.ok) throw new Error('Smart fill failed')
+      const { assignedRecipes } = await res.json()
+      const updated: WeeklyPlan = {
+        ...weeklyPlan,
+        slots: weeklyPlan.slots.map(slot => {
+          const match = assignedRecipes.find(
+            (r: { assignedDay: string; assignedMealType: string }) =>
+              r.assignedDay === slot.day && r.assignedMealType === slot.mealType
+          )
+          return match ? { ...slot, recipe: match } : slot
+        }),
+      }
+      handlePlanUpdate(updated)
+      setTab('planner')
+    } catch {
+      setError('Smart fill failed. Please try again.')
+    } finally {
+      setSmartFilling(false)
+    }
+  }, [weeklyPlan, tasteMemory, settings])
 
   if (!mounted) return null
 
@@ -261,6 +292,8 @@ export default function Home() {
               onSlotClick={handleSlotClick}
               activeDays={settings.activeDays}
               onActiveDaysChange={handleActiveDaysChange}
+              onSmartFill={handleSmartFill}
+              smartFilling={smartFilling}
             />
           </div>
         )}
