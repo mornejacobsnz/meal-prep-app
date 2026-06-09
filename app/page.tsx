@@ -135,7 +135,7 @@ export default function Home() {
     if (!weeklyPlan) return
     setSmartFilling(true)
     try {
-      const smartSettings = { ...settings, filters: { ...settings.filters, mealType: 'both' as const } }
+      const smartSettings = { ...settings }
       const res = await fetch('/api/smart-fill', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
