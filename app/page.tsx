@@ -185,10 +185,10 @@ export default function Home() {
               </div>
             ) : settings.filters.mealType === 'both' ? (
               <div className="space-y-6">
-                {[
-                  { label: '🥗 Lunches', type: 'lunch' },
-                  { label: '🍽️ Dinners', type: 'dinner' },
-                ].map(({ label, type }) => {
+                {([
+                  { label: '🥗 Lunches', type: 'lunch' as const },
+                  { label: '🍽️ Dinners', type: 'dinner' as const },
+                ] as const).map(({ label, type }) => {
                   const group = recipes.filter(r => r.mealType.includes(type))
                   if (group.length === 0) return null
                   return (
