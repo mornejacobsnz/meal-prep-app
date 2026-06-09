@@ -12,9 +12,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultServings: 4,
   filters: {
     simple: false,
-    quick: false,
     under30min: false,
     kidFriendly: false,
+    mealPrepFriendly: false,
     mealType: 'both',
   },
 }

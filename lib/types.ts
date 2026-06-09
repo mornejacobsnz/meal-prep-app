@@ -30,7 +30,7 @@ export interface Ingredient {
   estimatedCostNZD: number
 }
 
-export type RecipeTag = 'simple' | 'quick' | 'under-30-min' | 'kid-friendly'
+export type RecipeTag = 'simple' | 'quick' | 'under-30-min' | 'kid-friendly' | 'meal-prep-friendly'
 
 export interface MealSlot {
   day: DayOfWeek
@@ -59,9 +59,9 @@ export interface TasteMemory {
 
 export interface Filters {
   simple: boolean
-  quick: boolean
   under30min: boolean
   kidFriendly: boolean
+  mealPrepFriendly: boolean
   mealType: MealType | 'both'
 }
 

@@ -1,6 +1,6 @@
 'use client'
 import { WeeklyPlan, Ingredient } from '@/lib/types'
-import { ShoppingCart, Check } from 'lucide-react'
+import { ShoppingCart, Check, ArrowUpDown } from 'lucide-react'
 import { useState } from 'react'
 
 interface Props {
@@ -9,6 +9,20 @@ interface Props {
 
 interface AggregatedIngredient extends Ingredient {
   checked: boolean
+  category: string
+}
+
+const CATEGORY_ORDER = ['Produce', 'Meat & Fish', 'Dairy & Eggs', 'Pantry', 'Bakery', 'Condiments & Sauces', 'Other']
+
+function getCategory(name: string): string {
+  const n = name.toLowerCase()
+  if (/\b(chicken|beef|lamb|pork|mince|steak|salmon|tuna|fish|prawn|bacon|sausage|turkey|tofu)\b/.test(n)) return 'Meat & Fish'
+  if (/\b(milk|cheese|butter|cream|yoghurt|yogurt|egg|eggs)\b/.test(n)) return 'Dairy & Eggs'
+  if (/\b(bread|bun|roll|wrap|tortilla|pita|sourdough)\b/.test(n)) return 'Bakery'
+  if (/\b(sauce|soy sauce|oyster sauce|fish sauce|ketchup|mustard|mayo|mayonnaise|vinegar|oil|olive oil|sesame oil|sriracha|tabasco|hoisin|pesto|salsa)\b/.test(n)) return 'Condiments & Sauces'
+  if (/\b(rice|pasta|noodle|flour|sugar|salt|pepper|spice|cumin|paprika|turmeric|coriander|oregano|thyme|basil|garlic powder|onion powder|chilli|chili|stock|broth|can|tinned|lentil|chickpea|bean|oat|breadcrumb|cornstarch|cornflour|coconut milk|soy|tamari)\b/.test(n)) return 'Pantry'
+  if (/\b(apple|banana|orange|lemon|lime|berry|berries|mango|avocado|tomato|tomatoes|potato|potatoes|onion|onions|garlic|carrot|carrots|broccoli|spinach|lettuce|cucumber|capsicum|zucchini|mushroom|mushrooms|celery|pumpkin|corn|pea|peas|bean|beans|cabbage|cauliflower|ginger|spring onion|herbs|parsley|coriander leaf|mint|basil leaf)\b/.test(n)) return 'Produce'
+  return 'Other'
 }
 
 function aggregateIngredients(plan: WeeklyPlan): AggregatedIngredient[] {
@@ -23,17 +37,21 @@ function aggregateIngredients(plan: WeeklyPlan): AggregatedIngredient[] {
         existing.quantity += ing.quantity
         existing.estimatedCostNZD += ing.estimatedCostNZD
       } else {
-        map.set(key, { ...ing, checked: false })
+        map.set(key, { ...ing, checked: false, category: getCategory(ing.name) })
       }
     })
   })
 
-  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name))
+  return Array.from(map.values())
 }
+
+type SortMode = 'category' | 'name' | 'cost'
 
 export default function ShoppingList({ plan }: Props) {
   const base = aggregateIngredients(plan)
   const [items, setItems] = useState<AggregatedIngredient[]>(base.map(i => ({ ...i, checked: false })))
+  const [sortMode, setSortMode] = useState<SortMode>('category')
+
   const totalCost = items.reduce((sum, i) => sum + i.estimatedCostNZD, 0)
   const checkedCount = items.filter(i => i.checked).length
 
@@ -50,6 +68,23 @@ export default function ShoppingList({ plan }: Props) {
     setItems(prev => prev.map((item, i) => i === index ? { ...item, checked: !item.checked } : item))
   }
 
+  const sorted = [...items].sort((a, b) => {
+    if (sortMode === 'category') {
+      const ci = CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category)
+      return ci !== 0 ? ci : a.name.localeCompare(b.name)
+    }
+    if (sortMode === 'cost') return b.estimatedCostNZD - a.estimatedCostNZD
+    return a.name.localeCompare(b.name)
+  })
+
+  const grouped = sortMode === 'category'
+    ? CATEGORY_ORDER.reduce<Record<string, AggregatedIngredient[]>>((acc, cat) => {
+        const group = sorted.filter(i => i.category === cat)
+        if (group.length > 0) acc[cat] = group
+        return acc
+      }, {})
+    : null
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -60,43 +95,79 @@ export default function ShoppingList({ plan }: Props) {
         </div>
       </div>
 
-      {checkedCount > 0 && (
-        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-emerald-500 rounded-full transition-all"
-            style={{ width: `${(checkedCount / items.length) * 100}%` }}
-          />
-        </div>
-      )}
+      <div className="text-xs text-gray-400 italic">Prices are AI-estimated NZD averages — not real-time supermarket data.</div>
 
-      <div className="space-y-1">
-        {items.map((item, i) => (
+      <div className="flex gap-2 items-center">
+        <ArrowUpDown size={13} className="text-gray-400" />
+        {(['category', 'name', 'cost'] as SortMode[]).map(mode => (
           <button
-            key={i}
-            onClick={() => toggle(i)}
-            className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left ${
-              item.checked ? 'bg-gray-50 opacity-50' : 'bg-white border border-gray-100 shadow-sm'
+            key={mode}
+            onClick={() => setSortMode(mode)}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              sortMode === mode ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            <div className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-              item.checked ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300'
-            }`}>
-              {item.checked && <Check size={11} className="text-white" strokeWidth={3} />}
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className={`text-sm font-medium ${item.checked ? 'line-through text-gray-400' : 'text-gray-800'}`}>
-                {item.name}
-              </span>
-            </div>
-            <div className="text-right flex-shrink-0">
-              <div className="text-sm text-gray-600">
-                {item.quantity % 1 === 0 ? item.quantity : item.quantity.toFixed(1)} {item.unit}
-              </div>
-              <div className="text-xs text-gray-400">${item.estimatedCostNZD.toFixed(2)}</div>
-            </div>
+            {mode === 'category' ? 'By Type' : mode === 'name' ? 'A–Z' : 'By Cost'}
           </button>
         ))}
       </div>
+
+      {checkedCount > 0 && (
+        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${(checkedCount / items.length) * 100}%` }} />
+        </div>
+      )}
+
+      {grouped ? (
+        <div className="space-y-4">
+          {Object.entries(grouped).map(([cat, catItems]) => (
+            <div key={cat}>
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 px-1">{cat}</div>
+              <div className="space-y-1">
+                {catItems.map((item) => {
+                  const globalIndex = items.findIndex(i => i.name === item.name && i.unit === item.unit)
+                  return <ShoppingItem key={`${item.name}-${item.unit}`} item={item} onToggle={() => toggle(globalIndex)} />
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-1">
+          {sorted.map((item) => {
+            const globalIndex = items.findIndex(i => i.name === item.name && i.unit === item.unit)
+            return <ShoppingItem key={`${item.name}-${item.unit}`} item={item} onToggle={() => toggle(globalIndex)} />
+          })}
+        </div>
+      )}
     </div>
+  )
+}
+
+function ShoppingItem({ item, onToggle }: { item: AggregatedIngredient; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left ${
+        item.checked ? 'bg-gray-50 opacity-50' : 'bg-white border border-gray-100 shadow-sm'
+      }`}
+    >
+      <div className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+        item.checked ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300'
+      }`}>
+        {item.checked && <Check size={11} className="text-white" strokeWidth={3} />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <span className={`text-sm font-medium ${item.checked ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+          {item.name}
+        </span>
+      </div>
+      <div className="text-right flex-shrink-0">
+        <div className="text-sm text-gray-600">
+          {item.quantity % 1 === 0 ? item.quantity : item.quantity.toFixed(1)} {item.unit}
+        </div>
+        <div className="text-xs text-gray-400">~${item.estimatedCostNZD.toFixed(2)}</div>
+      </div>
+    </button>
   )
 }

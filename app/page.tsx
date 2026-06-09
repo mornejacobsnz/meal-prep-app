@@ -49,7 +49,7 @@ export default function Home() {
           budgetPerMeal,
           servings: settings.defaultServings,
           tasteMemory,
-          count: 6,
+          count: settings.filters.mealType === 'both' ? 8 : 6,
         }),
       })
       if (!res.ok) throw new Error('Failed to generate recipes')
@@ -80,6 +80,9 @@ export default function Home() {
   const handleRate = (recipe: Recipe, rating: 'liked' | 'disliked' | 'neutral') => {
     storage.updateTasteMemory(recipe, rating)
     setTasteMemory(storage.getTasteMemory())
+    if (rating === 'disliked') {
+      setRecipes(prev => prev.filter(r => r.id !== recipe.id))
+    }
   }
 
   const handlePlanUpdate = (plan: WeeklyPlan) => {
@@ -179,6 +182,34 @@ export default function Home() {
                     <div className="h-3 bg-gray-100 rounded w-2/3" />
                   </div>
                 ))}
+              </div>
+            ) : settings.filters.mealType === 'both' ? (
+              <div className="space-y-6">
+                {[
+                  { label: '🥗 Lunches', type: 'lunch' },
+                  { label: '🍽️ Dinners', type: 'dinner' },
+                ].map(({ label, type }) => {
+                  const group = recipes.filter(r => r.mealType.includes(type))
+                  if (group.length === 0) return null
+                  return (
+                    <div key={type}>
+                      <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">{label}</h3>
+                      <div className="space-y-3">
+                        {group.map(recipe => (
+                          <RecipeCard
+                            key={recipe.id}
+                            recipe={recipe}
+                            isFavourite={storage.isFavourite(recipe.id)}
+                            onFavourite={() => handleFavourite(recipe)}
+                            onRate={rating => handleRate(recipe, rating)}
+                            onAddToPlanner={addToSlot ? () => handleAddToPlanner(recipe) : undefined}
+                            servings={settings.defaultServings}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             ) : (
               <div className="space-y-3">

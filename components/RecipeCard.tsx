@@ -17,6 +17,7 @@ const TAG_STYLES: Record<string, string> = {
   'quick': 'bg-yellow-100 text-yellow-700',
   'under-30-min': 'bg-blue-100 text-blue-700',
   'kid-friendly': 'bg-pink-100 text-pink-700',
+  'meal-prep-friendly': 'bg-purple-100 text-purple-700',
 }
 
 export default function RecipeCard({ recipe, isFavourite, onFavourite, onRate, onAddToPlanner, servings }: Props) {

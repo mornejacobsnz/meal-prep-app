@@ -1,0 +1,185 @@
+
+> meal-prep-app@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.7 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.20.211:3000
+- Environments: .env.local
+✓ Ready in 365ms
+
+ GET / 200 in 639ms (next.js: 296ms, application-code: 343ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <RootLayout>
+                        <html lang="en">
+                          <body
+                            className="inter_5972bc34-module__OU16Qa__className bg-gray-50 min-h-screen"
+-                           data-new-gr-c-s-check-loaded="14.1138.0"
+-                           data-gr-ext-installed=""
+                          >
+                  ...
+ 
+ GET / 200 in 63ms (next.js: 15ms, application-code: 48ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/" notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <RootLayout>
+                        <html lang="en">
+                          <body
+                            className="inter_5972bc34-module__OU16Qa__className bg-gray-50 min-h-screen"
+-                           data-new-gr-c-s-check-loaded="14.1138.0"
+-                           data-gr-ext-installed=""
+                          >
+                  ...
+ 
+ POST /api/generate-recipes 200 in 20.0s (next.js: 953ms, application-code: 19.0s)
+Recipe generation error: SyntaxError: Expected ',' or '}' after property value in JSON at position 10099 (line 185 column 36)
+    at JSON.parse (<anonymous>)
+    at POST (app\api\generate-recipes\route.ts:79:36)
+  77 |     if (!jsonMatch) throw new Error('No JSON array found in response')
+  78 |
+> 79 |     const recipes: Recipe[] = JSON.parse(jsonMatch[0])
+     |                                    ^
+  80 |     return NextResponse.json({ recipes })
+  81 |   } catch (error) {
+  82 |     console.error('Recipe generation error:', error)
+ POST /api/generate-recipes 500 in 20.1s (next.js: 3ms, application-code: 20.0s)
+ GET / 200 in 272ms (next.js: 93ms, application-code: 179ms)
+ GET / 200 in 97ms (next.js: 5ms, application-code: 92ms)
+ GET / 200 in 66ms (next.js: 3ms, application-code: 63ms)
+ GET / 200 in 67ms (next.js: 25ms, application-code: 42ms)
+Recipe generation error: SyntaxError: Expected ',' or '}' after property value in JSON at position 10643 (line 191 column 36)
+    at JSON.parse (<anonymous>)
+    at POST (app\api\generate-recipes\route.ts:79:36)
+  77 |     if (!jsonMatch) throw new Error('No JSON array found in response')
+  78 |
+> 79 |     const recipes: Recipe[] = JSON.parse(jsonMatch[0])
+     |                                    ^
+  80 |     return NextResponse.json({ recipes })
+  81 |   } catch (error) {
+  82 |     console.error('Recipe generation error:', error)
+ POST /api/generate-recipes 500 in 20.3s (next.js: 9ms, application-code: 20.3s)
+ GET / 200 in 206ms (next.js: 113ms, application-code: 94ms)
+ GET / 200 in 35ms (next.js: 9ms, application-code: 26ms)
+Recipe generation error: SyntaxError: Expected ',' or '}' after property value in JSON at position 12560 (line 221 column 66)
+    at JSON.parse (<anonymous>)
+    at POST (app\api\generate-recipes\route.ts:79:36)
+  77 |     if (!jsonMatch) throw new Error('No JSON array found in response')
+  78 |
+> 79 |     const recipes: Recipe[] = JSON.parse(jsonMatch[0])
+     |                                    ^
+  80 |     return NextResponse.json({ recipes })
+  81 |   } catch (error) {
+  82 |     console.error('Recipe generation error:', error)
+ POST /api/generate-recipes 500 in 24.5s (next.js: 124ms, application-code: 24.4s)
+ GET / 200 in 184ms (next.js: 7ms, application-code: 177ms)
+ POST /api/generate-recipes 200 in 19.6s (next.js: 2ms, application-code: 19.6s)
+✓ Compiled in 60ms
+ GET / 200 in 187ms (next.js: 99ms, application-code: 88ms)
+ GET / 200 in 48ms (next.js: 5ms, application-code: 44ms)
+✓ Compiled in 56ms
+ GET / 200 in 214ms (next.js: 103ms, application-code: 111ms)
+ GET / 200 in 39ms (next.js: 8ms, application-code: 31ms)
+✓ Compiled in 174ms
+ GET / 200 in 169ms (next.js: 74ms, application-code: 95ms)
+ GET / 200 in 102ms (next.js: 8ms, application-code: 95ms)
+ GET / 200 in 82ms (next.js: 5ms, application-code: 77ms)
+ GET / 200 in 82ms (next.js: 18ms, application-code: 63ms)
+ GET / 200 in 48ms (next.js: 3ms, application-code: 45ms)
+ GET / 200 in 28ms (next.js: 12ms, application-code: 16ms)
+ GET / 200 in 140ms (next.js: 4ms, application-code: 137ms)
+ POST /api/generate-recipes 200 in 31.6s (next.js: 90ms, application-code: 31.6s)
+ GET / 200 in 127ms (next.js: 86ms, application-code: 41ms)
+ GET / 200 in 47ms (next.js: 5ms, application-code: 42ms)
+✓ Compiled in 78ms
+ GET / 200 in 176ms (next.js: 101ms, application-code: 75ms)
+ GET / 200 in 34ms (next.js: 6ms, application-code: 28ms)
+✓ Compiled in 61ms
+ GET / 200 in 197ms (next.js: 98ms, application-code: 98ms)
+ GET / 200 in 43ms (next.js: 3ms, application-code: 40ms)
+✓ Compiled in 63ms
+ GET / 200 in 296ms (next.js: 91ms, application-code: 205ms)
+ GET / 200 in 183ms (next.js: 12ms, application-code: 171ms)
+ GET / 200 in 122ms (next.js: 4ms, application-code: 118ms)
+ GET / 200 in 122ms (next.js: 29ms, application-code: 93ms)
+ GET / 200 in 122ms (next.js: 53ms, application-code: 69ms)
+ GET / 200 in 35ms (next.js: 5ms, application-code: 30ms)
+ GET / 200 in 175ms (next.js: 94ms, application-code: 81ms)
+ GET / 200 in 26ms (next.js: 4ms, application-code: 22ms)
+✓ Compiled in 65ms
+ GET / 200 in 261ms (next.js: 93ms, application-code: 168ms)
+ GET / 200 in 106ms (next.js: 11ms, application-code: 94ms)
+✓ Compiled in 96ms
+ GET / 200 in 164ms (next.js: 91ms, application-code: 73ms)
+ GET / 200 in 43ms (next.js: 5ms, application-code: 38ms)
+✓ Compiled in 74ms
+ GET / 200 in 270ms (next.js: 99ms, application-code: 170ms)
+ GET / 200 in 198ms (next.js: 3ms, application-code: 194ms)
+ GET / 200 in 164ms (next.js: 6ms, application-code: 158ms)
+ GET / 200 in 163ms (next.js: 56ms, application-code: 106ms)
+ GET / 200 in 164ms (next.js: 30ms, application-code: 134ms)
+ GET / 200 in 65ms (next.js: 10ms, application-code: 54ms)
+ GET / 200 in 149ms (next.js: 97ms, application-code: 52ms)
+ GET / 200 in 20ms (next.js: 5ms, application-code: 15ms)
+✓ Compiled in 35ms
+ GET / 200 in 258ms (next.js: 112ms, application-code: 146ms)
+ GET / 200 in 96ms (next.js: 4ms, application-code: 92ms)
+✓ Compiled in 64ms
+ GET / 200 in 216ms (next.js: 109ms, application-code: 107ms)
+ GET / 200 in 40ms (next.js: 7ms, application-code: 33ms)
+✓ Compiled in 86ms
+ GET / 200 in 108ms (next.js: 3ms, application-code: 105ms)
+  Reload env: .env.local
+ GET / 200 in 160ms (next.js: 106ms, application-code: 54ms)

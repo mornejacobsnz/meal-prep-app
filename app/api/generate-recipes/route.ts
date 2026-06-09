@@ -16,12 +16,13 @@ export async function POST(req: NextRequest) {
 
     const tagList: string[] = []
     if (filters.simple) tagList.push('simple (minimal techniques, few ingredients)')
-    if (filters.quick) tagList.push('quick to make')
-    if (filters.under30min) tagList.push('under 30 minutes total')
+    if (filters.under30min) tagList.push('quick — strict 30 minute or less total time from start to plate including prep and cook')
     if (filters.kidFriendly) tagList.push('kid-friendly')
+    if (filters.mealPrepFriendly) tagList.push('meal-prep friendly (batch-cookable, stores well in fridge/freezer for 3-5 days, reheats easily)')
 
-    const mealTypeText = filters.mealType === 'both' ? 'lunches and dinners' :
-      filters.mealType === 'lunch' ? 'lunches' : 'dinners'
+    const isBoth = filters.mealType === 'both'
+    const mealTypeText = isBoth ? 'meal prep'
+      : filters.mealType === 'lunch' ? 'lunches' : 'dinners'
 
     const likedContext = tasteMemory.liked.length > 0
       ? `\nPreviously liked recipes: ${tasteMemory.liked.slice(0, 10).join(', ')}`
@@ -36,20 +37,25 @@ export async function POST(req: NextRequest) {
       ? `\nFavoured ingredients: ${tasteMemory.likedIngredients.slice(0, 15).join(', ')}`
       : ''
 
-    const prompt = `Generate ${count} varied meal prep recipe suggestions for ${mealTypeText}.
+    const splitInstruction = isBoth
+      ? `- Generate EXACTLY 4 lunch recipes and EXACTLY 4 dinner recipes (8 total). Lunch recipes must have mealType: ["lunch"] and dinner recipes must have mealType: ["dinner"].`
+      : `- Generate ${count} ${mealTypeText} recipes. Each must have mealType: ["${filters.mealType}"].`
+
+    const prompt = `Generate ${isBoth ? 8 : count} varied ${mealTypeText} recipes for weekly meal prep.
 
 Requirements:
+${splitInstruction}
 - Budget: NZD $${budgetPerMeal.toFixed(2)} per meal (for ${servings} servings)
 - Tags required: ${tagList.length > 0 ? tagList.join(', ') : 'no specific restrictions'}
 - Servings: ${servings} people
 ${likedContext}${dislikedContext}${likedIngredients}${dislikedIngredients}
 
-Return ONLY a valid JSON array of ${count} recipes. Each recipe must follow this exact structure:
+Return ONLY a valid JSON array. Each recipe must follow this exact structure:
 {
   "id": "unique-kebab-case-id",
   "name": "Recipe Name",
   "description": "One sentence description",
-  "mealType": ["lunch"] or ["dinner"] or ["lunch","dinner"],
+  "mealType": ["lunch"] or ["dinner"],
   "prepTime": <minutes>,
   "cookTime": <minutes>,
   "totalTime": <minutes>,
@@ -68,7 +74,7 @@ Use realistic NZD supermarket prices. Keep recipes practical, delicious, and var
 
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 4096,
+      max_tokens: 8192,
       messages: [{ role: 'user', content: prompt }],
     })
 
