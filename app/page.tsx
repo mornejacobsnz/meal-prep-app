@@ -49,7 +49,7 @@ export default function Home() {
           budgetPerMeal,
           servings: settings.defaultServings,
           tasteMemory,
-          count: settings.filters.mealType === 'both' ? 8 : 6,
+          count: settings.filters.mealType === 'both' ? 10 : 6,
         }),
       })
       if (!res.ok) throw new Error('Failed to generate recipes')
@@ -108,6 +108,26 @@ export default function Home() {
     handlePlanUpdate(updated)
     setAddToSlot(null)
     setTab('planner')
+  }
+
+  const handleFillAll = (recipe: Recipe, mealType: MealType) => {
+    if (!weeklyPlan) return
+    const updated: WeeklyPlan = {
+      ...weeklyPlan,
+      slots: weeklyPlan.slots.map(slot =>
+        slot.mealType === mealType && settings.activeDays.includes(slot.day)
+          ? { ...slot, recipe }
+          : slot
+      ),
+    }
+    handlePlanUpdate(updated)
+    setAddToSlot(null)
+    setTab('planner')
+  }
+
+  const handleActiveDaysChange = (days: DayOfWeek[]) => {
+    const updated = { ...settings, activeDays: days }
+    saveSettings(updated)
   }
 
   if (!mounted) return null
@@ -203,6 +223,8 @@ export default function Home() {
                             onFavourite={() => handleFavourite(recipe)}
                             onRate={rating => handleRate(recipe, rating)}
                             onAddToPlanner={addToSlot ? () => handleAddToPlanner(recipe) : undefined}
+                            onFillAll={addToSlot ? (mt) => handleFillAll(recipe, mt) : undefined}
+                            addToSlot={addToSlot}
                             servings={settings.defaultServings}
                           />
                         ))}
@@ -221,6 +243,8 @@ export default function Home() {
                     onFavourite={() => handleFavourite(recipe)}
                     onRate={rating => handleRate(recipe, rating)}
                     onAddToPlanner={addToSlot ? () => handleAddToPlanner(recipe) : undefined}
+                    onFillAll={addToSlot ? (mt) => handleFillAll(recipe, mt) : undefined}
+                    addToSlot={addToSlot}
                     servings={settings.defaultServings}
                   />
                 ))}
@@ -235,6 +259,8 @@ export default function Home() {
               plan={weeklyPlan}
               onUpdate={handlePlanUpdate}
               onSlotClick={handleSlotClick}
+              activeDays={settings.activeDays}
+              onActiveDaysChange={handleActiveDaysChange}
             />
           </div>
         )}
@@ -261,6 +287,9 @@ export default function Home() {
                   isFavourite={true}
                   onFavourite={() => handleFavourite(recipe)}
                   onRate={rating => handleRate(recipe, rating)}
+                  onAddToPlanner={addToSlot ? () => handleAddToPlanner(recipe) : undefined}
+                  onFillAll={addToSlot ? (mt) => handleFillAll(recipe, mt) : undefined}
+                  addToSlot={addToSlot}
                   servings={settings.defaultServings}
                 />
               ))

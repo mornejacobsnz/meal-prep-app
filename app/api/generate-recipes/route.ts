@@ -37,14 +37,21 @@ export async function POST(req: NextRequest) {
       ? `\nFavoured ingredients: ${tasteMemory.likedIngredients.slice(0, 15).join(', ')}`
       : ''
 
+    const dietInstruction = filters.dietType === 'vegetarian'
+      ? '- ALL recipes must be fully vegetarian (no meat, no fish, no seafood)'
+      : filters.dietType === 'meat'
+      ? '- ALL recipes must include meat, poultry, or seafood as a main ingredient'
+      : ''
+
     const splitInstruction = isBoth
-      ? `- Generate EXACTLY 4 lunch recipes and EXACTLY 4 dinner recipes (8 total). Lunch recipes must have mealType: ["lunch"] and dinner recipes must have mealType: ["dinner"].`
+      ? `- Generate EXACTLY 5 lunch recipes and EXACTLY 5 dinner recipes (10 total). Lunch recipes must have mealType: ["lunch"] and dinner recipes must have mealType: ["dinner"].`
       : `- Generate ${count} ${mealTypeText} recipes. Each must have mealType: ["${filters.mealType}"].`
 
-    const prompt = `Generate ${isBoth ? 8 : count} varied ${mealTypeText} recipes for weekly meal prep.
+    const prompt = `Generate ${isBoth ? 10 : count} varied ${mealTypeText} recipes for weekly meal prep.
 
 Requirements:
 ${splitInstruction}
+${dietInstruction}
 - Budget: NZD $${budgetPerMeal.toFixed(2)} per meal (for ${servings} servings)
 - Tags required: ${tagList.length > 0 ? tagList.join(', ') : 'no specific restrictions'}
 - Servings: ${servings} people

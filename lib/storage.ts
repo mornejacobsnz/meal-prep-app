@@ -16,7 +16,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
     kidFriendly: false,
     mealPrepFriendly: false,
     mealType: 'both',
+    dietType: 'any',
   },
+  activeDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
 }
 
 function get<T>(key: string, fallback: T): T {

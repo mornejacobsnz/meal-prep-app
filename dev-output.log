@@ -183,3 +183,31 @@ Recipe generation error: SyntaxError: Expected ',' or '}' after property value i
  GET / 200 in 108ms (next.js: 3ms, application-code: 105ms)
   Reload env: .env.local
  GET / 200 in 160ms (next.js: 106ms, application-code: 54ms)
+✓ Compiled in 43ms
+ GET / 200 in 205ms (next.js: 123ms, application-code: 82ms)
+✓ Compiled in 50ms
+ GET / 200 in 154ms (next.js: 96ms, application-code: 57ms)
+ GET / 200 in 166ms (next.js: 103ms, application-code: 63ms)
+ GET / 200 in 156ms (next.js: 96ms, application-code: 60ms)
+✓ Compiled in 56ms
+ GET / 200 in 181ms (next.js: 113ms, application-code: 68ms)
+✓ Compiled in 43ms
+ GET / 200 in 170ms (next.js: 105ms, application-code: 65ms)
+✓ Compiled in 38ms
+ GET / 200 in 166ms (next.js: 111ms, application-code: 55ms)
+✓ Compiled in 47ms
+ GET / 200 in 182ms (next.js: 108ms, application-code: 74ms)
+✓ Compiled in 27ms
+ GET / 200 in 157ms (next.js: 102ms, application-code: 54ms)
+✓ Compiled in 95ms
+ GET / 200 in 172ms (next.js: 113ms, application-code: 59ms)
+✓ Compiled in 48ms
+ GET / 200 in 187ms (next.js: 118ms, application-code: 69ms)
+✓ Compiled in 34ms
+ GET / 200 in 169ms (next.js: 112ms, application-code: 58ms)
+✓ Compiled in 162ms
+ GET / 200 in 264ms (next.js: 104ms, application-code: 160ms)
+ GET / 200 in 95ms (next.js: 8ms, application-code: 87ms)
+ GET / 200 in 31ms (next.js: 4ms, application-code: 27ms)
+✓ Compiled in 116ms
+ GET / 200 in 199ms (next.js: 119ms, application-code: 80ms)

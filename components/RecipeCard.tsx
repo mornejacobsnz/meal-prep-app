@@ -1,6 +1,6 @@
 'use client'
-import { Recipe } from '@/lib/types'
-import { Clock, DollarSign, Heart, ThumbsDown, ThumbsUp, Users, ChevronDown, ChevronUp, Plus } from 'lucide-react'
+import { Recipe, MealType } from '@/lib/types'
+import { Clock, DollarSign, Heart, ThumbsDown, ThumbsUp, Users, ChevronDown, ChevronUp, Plus, CopyPlus } from 'lucide-react'
 import { useState } from 'react'
 
 interface Props {
@@ -9,6 +9,8 @@ interface Props {
   onFavourite: () => void
   onRate: (rating: 'liked' | 'disliked' | 'neutral') => void
   onAddToPlanner?: () => void
+  onFillAll?: (mealType: MealType) => void
+  addToSlot?: { day: string; mealType: MealType } | null
   servings?: number
 }
 
@@ -20,7 +22,7 @@ const TAG_STYLES: Record<string, string> = {
   'meal-prep-friendly': 'bg-purple-100 text-purple-700',
 }
 
-export default function RecipeCard({ recipe, isFavourite, onFavourite, onRate, onAddToPlanner, servings }: Props) {
+export default function RecipeCard({ recipe, isFavourite, onFavourite, onRate, onAddToPlanner, onFillAll, addToSlot, servings }: Props) {
   const [expanded, setExpanded] = useState(false)
   const scale = servings ? servings / recipe.servings : 1
   const scaledCost = (recipe.estimatedCostNZD * scale).toFixed(2)
@@ -77,7 +79,17 @@ export default function RecipeCard({ recipe, isFavourite, onFavourite, onRate, o
               className="flex items-center gap-1 px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 text-sm font-medium hover:bg-emerald-100 transition-colors"
             >
               <Plus size={14} />
-              Plan
+              Add here
+            </button>
+          )}
+          {onFillAll && addToSlot && (
+            <button
+              onClick={() => onFillAll(addToSlot.mealType)}
+              className="flex items-center gap-1 px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 text-sm font-medium hover:bg-indigo-100 transition-colors"
+              title={`Add to all ${addToSlot.mealType}s this week`}
+            >
+              <CopyPlus size={14} />
+              All {addToSlot.mealType}s
             </button>
           )}
           <button onClick={() => onRate('liked')} className="p-2 rounded-xl bg-green-50 text-green-600 hover:bg-green-100 transition-colors">

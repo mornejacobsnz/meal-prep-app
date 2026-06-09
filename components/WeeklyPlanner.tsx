@@ -6,15 +6,17 @@ interface Props {
   plan: WeeklyPlan
   onUpdate: (plan: WeeklyPlan) => void
   onSlotClick: (day: DayOfWeek, mealType: MealType) => void
+  activeDays: DayOfWeek[]
+  onActiveDaysChange: (days: DayOfWeek[]) => void
 }
 
-const DAYS: DayOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+const ALL_DAYS: DayOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const DAY_SHORT: Record<DayOfWeek, string> = {
   Monday: 'Mon', Tuesday: 'Tue', Wednesday: 'Wed', Thursday: 'Thu',
   Friday: 'Fri', Saturday: 'Sat', Sunday: 'Sun'
 }
 
-export default function WeeklyPlanner({ plan, onUpdate, onSlotClick }: Props) {
+export default function WeeklyPlanner({ plan, onUpdate, onSlotClick, activeDays, onActiveDaysChange }: Props) {
   const removeRecipe = (day: DayOfWeek, mealType: MealType) => {
     const updated: WeeklyPlan = {
       ...plan,
@@ -25,10 +27,20 @@ export default function WeeklyPlanner({ plan, onUpdate, onSlotClick }: Props) {
     onUpdate(updated)
   }
 
+  const toggleDay = (day: DayOfWeek) => {
+    if (activeDays.includes(day)) {
+      if (activeDays.length === 1) return
+      onActiveDaysChange(activeDays.filter(d => d !== day))
+    } else {
+      onActiveDaysChange([...ALL_DAYS.filter(d => activeDays.includes(d) || d === day)])
+    }
+  }
+
   const getSlot = (day: DayOfWeek, mealType: MealType) =>
     plan.slots.find(s => s.day === day && s.mealType === mealType)
 
-  const totalCost = plan.slots.reduce((sum, slot) => sum + (slot.recipe?.estimatedCostNZD ?? 0), 0)
+  const visibleSlots = plan.slots.filter(s => activeDays.includes(s.day))
+  const totalCost = visibleSlots.reduce((sum, slot) => sum + (slot.recipe?.estimatedCostNZD ?? 0), 0)
 
   return (
     <div className="space-y-4">
@@ -37,8 +49,25 @@ export default function WeeklyPlanner({ plan, onUpdate, onSlotClick }: Props) {
         <span className="text-sm font-semibold text-emerald-600">${totalCost.toFixed(0)} NZD total</span>
       </div>
 
+      {/* Day picker */}
+      <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-0.5">
+        {ALL_DAYS.map(day => (
+          <button
+            key={day}
+            onClick={() => toggleDay(day)}
+            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+              activeDays.includes(day)
+                ? 'bg-emerald-500 text-white shadow-sm'
+                : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+            }`}
+          >
+            {DAY_SHORT[day]}
+          </button>
+        ))}
+      </div>
+
       <div className="space-y-2">
-        {DAYS.map(day => (
+        {ALL_DAYS.filter(day => activeDays.includes(day)).map(day => (
           <div key={day} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
               <span className="font-semibold text-sm text-gray-700">{day}</span>

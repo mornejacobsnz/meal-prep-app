@@ -1,5 +1,6 @@
 export type MealType = 'lunch' | 'dinner'
 export type DayOfWeek = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday'
+export type DietType = 'any' | 'vegetarian' | 'meat'
 
 export interface Recipe {
   id: string
@@ -63,10 +64,12 @@ export interface Filters {
   kidFriendly: boolean
   mealPrepFriendly: boolean
   mealType: MealType | 'both'
+  dietType: DietType
 }
 
 export interface AppSettings {
   weeklyBudgetNZD: number
   defaultServings: number
   filters: Filters
+  activeDays: DayOfWeek[]
 }
