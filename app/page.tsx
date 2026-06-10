@@ -411,14 +411,14 @@ export default function Home() {
               <div className="text-4xl font-bold tracking-[0.3em] text-gray-900 mb-3">{householdCode}</div>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(householdCode)
+                  navigator.clipboard.writeText(`Join my Meal Prep household!\nCode: ${householdCode}\nApp: https://meal-prep-app-rouge.vercel.app`)
                   setCodeCopied(true)
                   setTimeout(() => setCodeCopied(false), 2000)
                 }}
                 className="flex items-center gap-1.5 mx-auto text-sm text-emerald-600 font-medium"
               >
                 {codeCopied ? <Check size={14} /> : <Copy size={14} />}
-                {codeCopied ? 'Copied!' : 'Copy code'}
+                {codeCopied ? 'Copied!' : 'Copy code + link'}
               </button>
             </div>
             <p className="text-xs text-gray-400 text-center">App URL: meal-prep-app-rouge.vercel.app</p>
