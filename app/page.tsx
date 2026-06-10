@@ -11,9 +11,10 @@ import ShoppingList from '@/components/ShoppingList'
 import HouseholdSetup from '@/components/HouseholdSetup'
 import MoodBar from '@/components/MoodBar'
 import SlotPicker from '@/components/SlotPicker'
-import { ChefHat, CalendarDays, ShoppingCart, Heart, RefreshCw, X, Users, Copy, Check } from 'lucide-react'
+import PrepGuide from '@/components/PrepGuide'
+import { ChefHat, CalendarDays, ShoppingCart, Heart, RefreshCw, X, Users, Copy, Check, ClipboardList } from 'lucide-react'
 
-type Tab = 'discover' | 'planner' | 'shopping' | 'favourites'
+type Tab = 'discover' | 'planner' | 'shopping' | 'favourites' | 'prep'
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>('discover')
@@ -230,7 +231,8 @@ export default function Home() {
     { key: 'discover' as Tab, label: 'Discover', icon: ChefHat },
     { key: 'planner' as Tab, label: 'Planner', icon: CalendarDays },
     { key: 'shopping' as Tab, label: 'Shopping', icon: ShoppingCart },
-    { key: 'favourites' as Tab, label: 'Favourites', icon: Heart },
+    { key: 'favourites' as Tab, label: 'Saved', icon: Heart },
+    { key: 'prep' as Tab, label: 'Prep', icon: ClipboardList },
   ]
 
   return (
@@ -384,6 +386,12 @@ export default function Home() {
         {tab === 'shopping' && weeklyPlan && (
           <div className="p-4">
             <ShoppingList plan={weeklyPlan} />
+          </div>
+        )}
+
+        {tab === 'prep' && weeklyPlan && (
+          <div className="p-4">
+            <PrepGuide plan={weeklyPlan} activeDays={settings.activeDays} servings={settings.defaultServings} />
           </div>
         )}
 
