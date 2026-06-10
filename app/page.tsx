@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Recipe, WeeklyPlan, AppSettings, DayOfWeek, MealType, TasteMemory } from '@/lib/types'
 import { storage, DEFAULT_SETTINGS } from '@/lib/storage'
-import { sync, getLocalHouseholdId } from '@/lib/household'
+import { sync, getLocalHouseholdId, getLocalHouseholdCode } from '@/lib/household'
 import FilterBar from '@/components/FilterBar'
 import BudgetSlider from '@/components/BudgetSlider'
 import RecipeCard from '@/components/RecipeCard'
@@ -33,6 +33,7 @@ export default function Home() {
     const hid = getLocalHouseholdId()
     if (hid) {
       setHouseholdId(hid)
+      setHouseholdCode(getLocalHouseholdCode())
       loadFromSync(hid)
     } else {
       setSettings(storage.getSettings())

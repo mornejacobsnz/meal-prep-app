@@ -2,6 +2,7 @@ import { supabase } from './supabase'
 import { Recipe, WeeklyPlan, TasteMemory, AppSettings } from './types'
 
 const LOCAL_KEY = 'mealprep_household_id'
+const LOCAL_CODE_KEY = 'mealprep_household_code'
 
 function generateCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -13,8 +14,14 @@ export function getLocalHouseholdId(): string | null {
   return localStorage.getItem(LOCAL_KEY)
 }
 
-function setLocalHouseholdId(id: string) {
+export function getLocalHouseholdCode(): string {
+  if (typeof window === 'undefined') return ''
+  return localStorage.getItem(LOCAL_CODE_KEY) ?? ''
+}
+
+function setLocalHouseholdId(id: string, code: string) {
   localStorage.setItem(LOCAL_KEY, id)
+  localStorage.setItem(LOCAL_CODE_KEY, code)
 }
 
 export async function createHousehold(): Promise<{ householdId: string; code: string } | null> {
@@ -28,7 +35,7 @@ export async function createHousehold(): Promise<{ householdId: string; code: st
       .select('id, code')
       .single()
     if (!error && data) {
-      setLocalHouseholdId(data.id)
+      setLocalHouseholdId(data.id, data.code)
       return { householdId: data.id, code: data.code }
     }
     code = generateCode()
@@ -45,7 +52,7 @@ export async function joinHousehold(code: string): Promise<string | null> {
     .eq('code', code.toUpperCase().trim())
     .single()
   if (error || !data) return null
-  setLocalHouseholdId(data.id)
+  setLocalHouseholdId(data.id, code.toUpperCase().trim())
   return data.id
 }
 
