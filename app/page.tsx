@@ -397,27 +397,17 @@ export default function Home() {
               </div>
             ) : (
               favourites.map(recipe => (
-                <div
+                <RecipeCard
                   key={recipe.id}
-                  className={`transition-all duration-300 ${removingFavId === recipe.id ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
-                >
-                  <RecipeCard
-                    recipe={recipe}
-                    isFavourite={true}
-                    onFavourite={() => {
-                      setRemovingFavId(recipe.id)
-                      setTimeout(() => {
-                        handleFavourite(recipe)
-                        setRemovingFavId(null)
-                      }, 280)
-                    }}
-                    onRate={rating => handleRate(recipe, rating)}
-                    onAddToPlanner={() => setSlotPickerRecipe(recipe)}
-                    onFillAll={addToSlot ? (mt) => handleFillAll(recipe, mt) : undefined}
-                    addToSlot={addToSlot}
-                    servings={settings.defaultServings}
-                  />
-                </div>
+                  recipe={recipe}
+                  isFavourite={true}
+                  onFavourite={() => handleFavourite(recipe)}
+                  onRate={rating => handleRate(recipe, rating)}
+                  onAddToPlanner={() => setSlotPickerRecipe(recipe)}
+                  onFillAll={addToSlot ? (mt) => handleFillAll(recipe, mt) : undefined}
+                  addToSlot={addToSlot}
+                  servings={settings.defaultServings}
+                />
               ))
             )}
           </div>
