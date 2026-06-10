@@ -6,9 +6,10 @@ const client = new Anthropic()
 
 export async function POST(req: NextRequest) {
   try {
-    const { tasteMemory, settings } = await req.json() as {
+    const { tasteMemory, settings, mood = '' } = await req.json() as {
       tasteMemory: TasteMemory
       settings: AppSettings
+      mood?: string
     }
 
     const { activeDays, filters, weeklyBudgetNZD, defaultServings } = settings
@@ -69,6 +70,7 @@ Plan requirements:
 - No recipe should appear more than once in the week
 - Ensure variety across the week (different proteins, cuisines, cooking styles)
 - If liked recipes/ingredients exist, lean toward that style
+${mood ? `- This week's vibe/mood: ${mood} — this is the most important instruction, lean strongly into it` : ''}
 
 Generate exactly ${totalRecipes} unique recipes and assign them to slots.
 

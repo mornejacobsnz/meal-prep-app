@@ -72,4 +72,5 @@ export interface AppSettings {
   defaultServings: number
   filters: Filters
   activeDays: DayOfWeek[]
+  mood: string
 }

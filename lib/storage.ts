@@ -19,6 +19,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     dietType: 'any',
   },
   activeDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+  mood: '',
 }
 
 function get<T>(key: string, fallback: T): T {

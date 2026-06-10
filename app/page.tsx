@@ -9,6 +9,7 @@ import RecipeCard from '@/components/RecipeCard'
 import WeeklyPlanner from '@/components/WeeklyPlanner'
 import ShoppingList from '@/components/ShoppingList'
 import HouseholdSetup from '@/components/HouseholdSetup'
+import MoodBar from '@/components/MoodBar'
 import { ChefHat, CalendarDays, ShoppingCart, Heart, RefreshCw, X, Users, Copy, Check } from 'lucide-react'
 
 type Tab = 'discover' | 'planner' | 'shopping' | 'favourites'
@@ -89,6 +90,7 @@ export default function Home() {
           budgetPerMeal,
           servings: settings.defaultServings,
           tasteMemory,
+          mood: settings.mood,
           count: settings.filters.mealType === 'both' ? 10 : 6,
         }),
       })
@@ -183,7 +185,7 @@ export default function Home() {
       const res = await fetch('/api/smart-fill', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tasteMemory, settings: smartSettings }),
+        body: JSON.stringify({ tasteMemory, settings: smartSettings, mood: settings.mood }),
       })
       if (!res.ok) throw new Error('Smart fill failed')
       const { assignedRecipes } = await res.json()
@@ -267,6 +269,10 @@ export default function Home() {
             <FilterBar
               filters={settings.filters}
               onChange={f => saveSettings({ ...settings, filters: f })}
+            />
+            <MoodBar
+              mood={settings.mood}
+              onChange={m => saveSettings({ ...settings, mood: m })}
             />
             <div className="flex justify-between items-center">
               <span className="text-sm font-semibold text-gray-700">
