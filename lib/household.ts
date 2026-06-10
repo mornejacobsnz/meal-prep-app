@@ -44,6 +44,20 @@ export async function createHousehold(): Promise<{ householdId: string; code: st
   return null
 }
 
+export async function fetchHouseholdCode(householdId: string): Promise<string> {
+  if (!supabase) return ''
+  const { data } = await supabase
+    .from('households')
+    .select('code')
+    .eq('id', householdId)
+    .single()
+  if (data?.code) {
+    localStorage.setItem(LOCAL_CODE_KEY, data.code)
+    return data.code
+  }
+  return ''
+}
+
 export async function joinHousehold(code: string): Promise<string | null> {
   if (!supabase) return null
   const { data, error } = await supabase
