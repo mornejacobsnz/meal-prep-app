@@ -27,6 +27,7 @@ export default function Home() {
   const [tasteMemory, setTasteMemory] = useState<TasteMemory>({ liked: [], disliked: [], likedIngredients: [], dislikedIngredients: [], history: [] })
   const [loading, setLoading] = useState(false)
   const [smartFilling, setSmartFilling] = useState(false)
+  const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [addToSlot, setAddToSlot] = useState<{ day: DayOfWeek; mealType: MealType } | null>(null)
   const [showHouseholdModal, setShowHouseholdModal] = useState(false)
@@ -75,17 +76,34 @@ export default function Home() {
     loadFromSync(hid)
   }
 
+  const handleSync = async () => {
+    if (!householdId || syncing) return
+    setSyncing(true)
+    await loadFromSync(householdId)
+    setSyncing(false)
+  }
+
   const saveSettings = useCallback((s: AppSettings) => {
     setSettings(s)
     if (householdId) sync.saveSettings(householdId, s)
     else storage.saveSettings(s)
   }, [householdId])
 
-  const generateRecipes = useCallback(async () => {
+  const generateRecipes = useCallback(async (force = false) => {
+    const budgetPerMeal = settings.weeklyBudgetNZD / 14
+    const filterKey = JSON.stringify({ filters: settings.filters, budgetPerMeal: budgetPerMeal.toFixed(2), servings: settings.defaultServings, mood: settings.mood })
+
+    if (!force) {
+      const cached = storage.getRecipeCache(filterKey)
+      if (cached) {
+        setRecipes(cached)
+        return
+      }
+    }
+
     setLoading(true)
     setError(null)
     try {
-      const budgetPerMeal = settings.weeklyBudgetNZD / 14
       const res = await fetch('/api/generate-recipes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -101,6 +119,7 @@ export default function Home() {
       if (!res.ok) throw new Error('Failed to generate recipes')
       const { recipes: newRecipes } = await res.json()
       setRecipes(newRecipes)
+      storage.saveRecipeCache(newRecipes, filterKey)
     } catch {
       setError('Could not generate recipes. Please try again.')
     } finally {
@@ -244,15 +263,27 @@ export default function Home() {
             <h1 className="text-xl font-bold text-gray-900">Meal Prep</h1>
             <p className="text-xs text-gray-400">Budget: ${settings.weeklyBudgetNZD} NZD/week</p>
           </div>
-          {householdCode && (
-            <button
-              onClick={() => setShowHouseholdModal(true)}
-              className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1 hover:bg-emerald-100 transition-colors"
-            >
-              <Users size={11} className="text-emerald-500" />
-              <span className="text-xs font-bold text-emerald-600 tracking-wider">{householdCode}</span>
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {householdId && (
+              <button
+                onClick={handleSync}
+                disabled={syncing}
+                title="Sync household data"
+                className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
+              </button>
+            )}
+            {householdCode && (
+              <button
+                onClick={() => setShowHouseholdModal(true)}
+                className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1 hover:bg-emerald-100 transition-colors"
+              >
+                <Users size={11} className="text-emerald-500" />
+                <span className="text-xs font-bold text-emerald-600 tracking-wider">{householdCode}</span>
+              </button>
+            )}
+          </div>
         </div>
         {addToSlot && (
           <div className="flex items-center justify-between bg-indigo-500 rounded-xl px-3 py-2 mt-1">
@@ -296,7 +327,7 @@ export default function Home() {
                 {loading ? 'Finding recipes...' : `${recipes.length} recipes`}
               </span>
               <button
-                onClick={generateRecipes}
+                onClick={() => generateRecipes(true)}
                 disabled={loading}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500 text-white text-sm font-medium disabled:opacity-50 hover:bg-emerald-600 transition-colors"
               >

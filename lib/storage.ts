@@ -5,6 +5,15 @@ const KEYS = {
   weeklyPlan: 'mealprep_weekly_plan',
   tasteMemory: 'mealprep_taste_memory',
   settings: 'mealprep_settings',
+  recipeCache: 'mealprep_recipe_cache',
+}
+
+const RECIPE_CACHE_TTL_MS = 8 * 60 * 60 * 1000 // 8 hours
+
+interface RecipeCache {
+  recipes: Recipe[]
+  filterKey: string
+  timestamp: number
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -95,4 +104,18 @@ export const storage = {
 
   getSettings: (): AppSettings => get(KEYS.settings, DEFAULT_SETTINGS),
   saveSettings: (settings: AppSettings) => set(KEYS.settings, settings),
+
+  getRecipeCache: (filterKey: string): Recipe[] | null => {
+    const cached = get<RecipeCache | null>(KEYS.recipeCache, null)
+    if (!cached) return null
+    if (cached.filterKey !== filterKey) return null
+    if (Date.now() - cached.timestamp > RECIPE_CACHE_TTL_MS) return null
+    return cached.recipes
+  },
+  saveRecipeCache: (recipes: Recipe[], filterKey: string) => {
+    set<RecipeCache>(KEYS.recipeCache, { recipes, filterKey, timestamp: Date.now() })
+  },
+  clearRecipeCache: () => {
+    if (typeof window !== 'undefined') localStorage.removeItem(KEYS.recipeCache)
+  },
 }
