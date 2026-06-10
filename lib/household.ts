@@ -18,6 +18,7 @@ function setLocalHouseholdId(id: string) {
 }
 
 export async function createHousehold(): Promise<{ householdId: string; code: string } | null> {
+  if (!supabase) return null
   let code = generateCode()
   let attempts = 0
   while (attempts < 5) {
@@ -37,6 +38,7 @@ export async function createHousehold(): Promise<{ householdId: string; code: st
 }
 
 export async function joinHousehold(code: string): Promise<string | null> {
+  if (!supabase) return null
   const { data, error } = await supabase
     .from('households')
     .select('id')
@@ -48,6 +50,7 @@ export async function joinHousehold(code: string): Promise<string | null> {
 }
 
 async function syncGet<T>(householdId: string, key: string, fallback: T): Promise<T> {
+  if (!supabase) return fallback
   const { data } = await supabase
     .from('household_data')
     .select('value')
@@ -58,6 +61,7 @@ async function syncGet<T>(householdId: string, key: string, fallback: T): Promis
 }
 
 async function syncSet<T>(householdId: string, key: string, value: T): Promise<void> {
+  if (!supabase) return
   await supabase
     .from('household_data')
     .upsert({ household_id: householdId, key, value, updated_at: new Date().toISOString() }, { onConflict: 'household_id,key' })
