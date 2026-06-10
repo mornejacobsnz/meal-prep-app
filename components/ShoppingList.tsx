@@ -36,24 +36,88 @@ function getCategory(name: string): string {
   return 'Other'
 }
 
+const UNIT_ALIASES: Record<string, string> = {
+  gram: 'g', grams: 'g',
+  kilogram: 'kg', kilograms: 'kg',
+  milliliter: 'ml', millilitre: 'ml', milliliters: 'ml', millilitres: 'ml',
+  liter: 'L', litre: 'L', liters: 'L', litres: 'L', l: 'L',
+  teaspoon: 'tsp', teaspoons: 'tsp',
+  tablespoon: 'tbsp', tablespoons: 'tbsp',
+  clove: 'cloves',
+  piece: 'whole', pieces: 'whole',
+  cup: 'cup', cups: 'cup',
+}
+
+// g ↔ kg and ml ↔ L conversions so they merge cleanly
+const UNIT_TO_BASE: Record<string, { base: string; factor: number }> = {
+  g: { base: 'g', factor: 1 }, kg: { base: 'g', factor: 1000 },
+  ml: { base: 'ml', factor: 1 }, L: { base: 'ml', factor: 1000 },
+}
+function toBase(qty: number, unit: string): { qty: number; unit: string } {
+  const conv = UNIT_TO_BASE[unit]
+  return conv ? { qty: qty * conv.factor, unit: conv.base } : { qty, unit }
+}
+function fromBase(qty: number, unit: string): { qty: number; unit: string } {
+  if (unit === 'g' && qty >= 1000) return { qty: qty / 1000, unit: 'kg' }
+  if (unit === 'ml' && qty >= 1000) return { qty: qty / 1000, unit: 'L' }
+  return { qty, unit }
+}
+
+function normalizeUnit(unit: string): string {
+  return UNIT_ALIASES[unit.toLowerCase().trim()] ?? unit.toLowerCase().trim()
+}
+
+// Strip prep adjectives so "minced garlic", "garlic cloves", "crushed garlic" all → "garlic"
+const PREP_PREFIX = /^(?:(?:freshly|finely|roughly|coarsely|thinly|lightly)\s+)?(?:minced|diced|chopped|sliced|crushed|grated|shredded|peeled|trimmed|halved|quartered|cubed|softened|ground|cooked)\s+/i
+const PREP_SUFFIX = /,\s*(?:minced|diced|chopped|sliced|crushed|grated|shredded|peeled|trimmed|halved|quartered|cubed|softened|ground|cooked)$/i
+
+function normalizeIngredientName(name: string): string {
+  let n = name.trim()
+  n = n.replace(PREP_SUFFIX, '')
+  n = n.replace(PREP_PREFIX, '')
+  // "garlic cloves" / "garlic clove" → "garlic"
+  n = n.replace(/^garlic\s+cloves?$/i, 'garlic')
+  return n.charAt(0).toUpperCase() + n.slice(1).toLowerCase()
+}
+
 function aggregateIngredients(plan: WeeklyPlan): AggregatedIngredient[] {
-  const map = new Map<string, AggregatedIngredient>()
+  // key: normalizedName|baseUnit — values stored in base units then converted back for display
+  const map = new Map<string, { item: AggregatedIngredient; baseQty: number; baseUnit: string; baseCost: number }>()
 
   plan.slots.forEach(slot => {
     if (!slot.recipe) return
     slot.recipe.ingredients.forEach(ing => {
-      const key = `${ing.name.toLowerCase()}|${ing.unit.toLowerCase()}`
+      const normName = normalizeIngredientName(ing.name)
+      const normUnit = normalizeUnit(ing.unit)
+      const { qty: bQty, unit: bUnit } = toBase(ing.quantity, normUnit)
+      const key = `${normName.toLowerCase()}|${bUnit}`
+
       if (map.has(key)) {
-        const existing = map.get(key)!
-        existing.quantity += ing.quantity
-        existing.estimatedCostNZD += ing.estimatedCostNZD
+        const entry = map.get(key)!
+        entry.baseQty += bQty
+        entry.baseCost += ing.estimatedCostNZD
       } else {
-        map.set(key, { ...ing, checked: false, category: getCategory(ing.name), isStaple: isStaple(ing) })
+        map.set(key, {
+          item: {
+            ...ing,
+            name: normName,
+            unit: normUnit,
+            checked: false,
+            category: getCategory(normName),
+            isStaple: isStaple({ ...ing, name: normName, unit: normUnit }),
+          },
+          baseQty: bQty,
+          baseUnit: bUnit,
+          baseCost: ing.estimatedCostNZD,
+        })
       }
     })
   })
 
-  return Array.from(map.values())
+  return Array.from(map.values()).map(({ item, baseQty, baseUnit, baseCost }) => {
+    const { qty, unit } = fromBase(baseQty, baseUnit)
+    return { ...item, quantity: qty, unit, estimatedCostNZD: baseCost }
+  })
 }
 
 type SortMode = 'category' | 'name' | 'cost'
