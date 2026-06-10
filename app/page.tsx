@@ -416,7 +416,7 @@ export default function Home() {
 
         {tab === 'shopping' && weeklyPlan && (
           <div className="p-4">
-            <ShoppingList plan={weeklyPlan} />
+            <ShoppingList plan={weeklyPlan} activeDays={settings.activeDays} />
           </div>
         )}
 

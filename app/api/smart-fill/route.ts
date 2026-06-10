@@ -103,6 +103,17 @@ Return ONLY a valid JSON array of ${totalRecipes} recipe objects with an additio
 
 Slots to fill: ${mealSlots.map(s => `${s.day} ${s.mealType}`).join(', ')}
 
+UNIT RULES — follow exactly:
+- Meat, fish, tofu, halloumi: always "g"
+- Vegetables by weight (spinach, broccoli, mushrooms): always "g"
+- Whole items (onion, egg, potato, carrot, capsicum, avocado, tomato, lemon, lime, zucchini): always "whole"
+- Garlic: always "cloves" — never grams or whole
+- Liquids (water, stock, milk, cream, sauces, oil): always "ml"
+- Dry spices and powders: always "tsp" or "tbsp"
+- Rice, pasta, oats, lentils, flour: always "g"
+- Canned goods: always "g"
+- Bread, wraps, tortillas: always "slices" or "pieces"
+
 Use realistic NZD supermarket prices. Make it feel like a thoughtful human meal planner chose these.`
 
     const message = await client.messages.create({

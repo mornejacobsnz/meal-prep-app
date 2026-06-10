@@ -1,10 +1,11 @@
 'use client'
-import { WeeklyPlan, Ingredient } from '@/lib/types'
+import { WeeklyPlan, Ingredient, DayOfWeek } from '@/lib/types'
 import { ShoppingCart, Check, ArrowUpDown, Package } from 'lucide-react'
 import { useState } from 'react'
 
 interface Props {
   plan: WeeklyPlan
+  activeDays: DayOfWeek[]
 }
 
 interface AggregatedIngredient {
@@ -89,11 +90,11 @@ function fmtQty(qty: number): string {
   return qty % 1 === 0 ? String(qty) : qty.toFixed(qty < 10 ? 1 : 0)
 }
 
-function aggregateIngredients(plan: WeeklyPlan): AggregatedIngredient[] {
+function aggregateIngredients(plan: WeeklyPlan, activeDays: DayOfWeek[]): AggregatedIngredient[] {
   // Group by normalised name only — then sub-group compatible units
   const nameMap = new Map<string, { normName: string; unitBuckets: Map<string, { qty: number; unit: string }>; cost: number; ing: Ingredient }>()
 
-  plan.slots.forEach(slot => {
+  plan.slots.filter(s => activeDays.includes(s.day)).forEach(slot => {
     if (!slot.recipe) return
     slot.recipe.ingredients.forEach(ing => {
       const normName = normalizeIngredientName(ing.name)
@@ -140,8 +141,8 @@ function aggregateIngredients(plan: WeeklyPlan): AggregatedIngredient[] {
 
 type SortMode = 'category' | 'name' | 'cost'
 
-export default function ShoppingList({ plan }: Props) {
-  const base = aggregateIngredients(plan)
+export default function ShoppingList({ plan, activeDays }: Props) {
+  const base = aggregateIngredients(plan, activeDays)
   const [items, setItems] = useState<AggregatedIngredient[]>(base.map(i => ({ ...i, checked: false })))
   const [sortMode, setSortMode] = useState<SortMode>('category')
   const [pantryExpanded, setPantryExpanded] = useState(true)

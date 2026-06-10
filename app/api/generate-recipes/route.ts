@@ -78,6 +78,17 @@ Return ONLY a valid JSON array. Each recipe must follow this exact structure:
   "createdAt": "${new Date().toISOString()}"
 }
 
+UNIT RULES — follow these exactly, no exceptions:
+- Meat, fish, tofu, halloumi: always "g"
+- Vegetables sold by weight (spinach, broccoli, cabbage, mushrooms): always "g"
+- Whole items (onion, egg, potato, carrot, capsicum, avocado, tomato, lemon, lime, zucchini): always "whole"
+- Garlic: always "cloves" — NEVER grams or whole
+- Liquids (water, stock, milk, cream, sauces, oil): always "ml"
+- Dry spices and powders: always "tsp" or "tbsp"
+- Rice, pasta, oats, lentils, flour, sugar: always "g"
+- Canned goods (tomatoes, beans, coconut milk): always "g"
+- Bread, wraps, tortillas: always "slices" or "pieces"
+
 Use realistic NZD supermarket prices. Keep recipes practical, delicious, and varied. No duplicate recipes from the liked list.`
 
     const message = await client.messages.create({
