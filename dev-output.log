@@ -259,3 +259,4 @@ Recipe generation error: SyntaxError: Expected ',' or '}' after property value i
  GET / 200 in 187ms (next.js: 119ms, application-code: 68ms)
 ✓ Compiled in 59ms
  GET / 200 in 122ms (next.js: 82ms, application-code: 40ms)
+  Reload env: .env.local

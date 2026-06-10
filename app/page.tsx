@@ -2,17 +2,21 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Recipe, WeeklyPlan, AppSettings, DayOfWeek, MealType, TasteMemory } from '@/lib/types'
 import { storage, DEFAULT_SETTINGS } from '@/lib/storage'
+import { sync, getLocalHouseholdId } from '@/lib/household'
 import FilterBar from '@/components/FilterBar'
 import BudgetSlider from '@/components/BudgetSlider'
 import RecipeCard from '@/components/RecipeCard'
 import WeeklyPlanner from '@/components/WeeklyPlanner'
 import ShoppingList from '@/components/ShoppingList'
-import { ChefHat, CalendarDays, ShoppingCart, Heart, RefreshCw, X } from 'lucide-react'
+import HouseholdSetup from '@/components/HouseholdSetup'
+import { ChefHat, CalendarDays, ShoppingCart, Heart, RefreshCw, X, Users } from 'lucide-react'
 
 type Tab = 'discover' | 'planner' | 'shopping' | 'favourites'
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>('discover')
+  const [householdId, setHouseholdId] = useState<string | null>(null)
+  const [householdCode, setHouseholdCode] = useState<string>('')
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS)
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [favourites, setFavourites] = useState<Recipe[]>([])
@@ -26,16 +30,43 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true)
-    setSettings(storage.getSettings())
-    setFavourites(storage.getFavourites())
-    setWeeklyPlan(storage.getWeeklyPlan())
-    setTasteMemory(storage.getTasteMemory())
+    const hid = getLocalHouseholdId()
+    if (hid) {
+      setHouseholdId(hid)
+      loadFromSync(hid)
+    } else {
+      setSettings(storage.getSettings())
+      setFavourites(storage.getFavourites())
+      setWeeklyPlan(storage.getWeeklyPlan())
+      setTasteMemory(storage.getTasteMemory())
+    }
   }, [])
+
+  const loadFromSync = async (hid: string) => {
+    const defaultPlan = storage.getWeeklyPlan()
+    const [s, f, p, tm] = await Promise.all([
+      sync.getSettings(hid, DEFAULT_SETTINGS),
+      sync.getFavourites(hid),
+      sync.getWeeklyPlan(hid, defaultPlan),
+      sync.getTasteMemory(hid),
+    ])
+    setSettings(s)
+    setFavourites(f)
+    setWeeklyPlan(p)
+    setTasteMemory(tm)
+  }
+
+  const handleHouseholdReady = (hid: string, code: string) => {
+    setHouseholdId(hid)
+    setHouseholdCode(code)
+    loadFromSync(hid)
+  }
 
   const saveSettings = useCallback((s: AppSettings) => {
     setSettings(s)
-    storage.saveSettings(s)
-  }, [])
+    if (householdId) sync.saveSettings(householdId, s)
+    else storage.saveSettings(s)
+  }, [householdId])
 
   const generateRecipes = useCallback(async () => {
     setLoading(true)
@@ -70,17 +101,21 @@ export default function Home() {
   }, [mounted, tab])
 
   const handleFavourite = (recipe: Recipe) => {
-    if (storage.isFavourite(recipe.id)) {
-      storage.removeFavourite(recipe.id)
-    } else {
-      storage.saveFavourite(recipe)
+    const isFav = favourites.some(r => r.id === recipe.id)
+    const updated = isFav ? favourites.filter(r => r.id !== recipe.id) : [...favourites, recipe]
+    setFavourites(updated)
+    if (householdId) sync.saveFavourites(householdId, updated)
+    else {
+      if (isFav) storage.removeFavourite(recipe.id)
+      else storage.saveFavourite(recipe)
     }
-    setFavourites(storage.getFavourites())
   }
 
   const handleRate = (recipe: Recipe, rating: 'liked' | 'disliked' | 'neutral') => {
     storage.updateTasteMemory(recipe, rating)
-    setTasteMemory(storage.getTasteMemory())
+    const tm = storage.getTasteMemory()
+    setTasteMemory(tm)
+    if (householdId) sync.saveTasteMemory(householdId, tm)
     if (rating === 'disliked') {
       setRecipes(prev => prev.filter(r => r.id !== recipe.id))
     }
@@ -88,7 +123,8 @@ export default function Home() {
 
   const handlePlanUpdate = (plan: WeeklyPlan) => {
     setWeeklyPlan(plan)
-    storage.saveWeeklyPlan(plan)
+    if (householdId) sync.saveWeeklyPlan(householdId, plan)
+    else storage.saveWeeklyPlan(plan)
   }
 
   const handleSlotClick = (day: DayOfWeek, mealType: MealType) => {
@@ -163,6 +199,7 @@ export default function Home() {
   }, [weeklyPlan, tasteMemory, settings])
 
   if (!mounted) return null
+  if (!householdId) return <HouseholdSetup onReady={handleHouseholdReady} />
 
   const TABS = [
     { key: 'discover' as Tab, label: 'Discover', icon: ChefHat },
@@ -180,6 +217,12 @@ export default function Home() {
             <h1 className="text-xl font-bold text-gray-900">Meal Prep</h1>
             <p className="text-xs text-gray-400">Budget: ${settings.weeklyBudgetNZD} NZD/week</p>
           </div>
+          {householdCode && (
+            <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">
+              <Users size={11} className="text-emerald-500" />
+              <span className="text-xs font-bold text-emerald-600 tracking-wider">{householdCode}</span>
+            </div>
+          )}
         </div>
         {addToSlot && (
           <div className="flex items-center justify-between bg-indigo-500 rounded-xl px-3 py-2 mt-1">
@@ -258,7 +301,7 @@ export default function Home() {
                           <RecipeCard
                             key={recipe.id}
                             recipe={recipe}
-                            isFavourite={storage.isFavourite(recipe.id)}
+                            isFavourite={favourites.some(r => r.id === recipe.id)}
                             onFavourite={() => handleFavourite(recipe)}
                             onRate={rating => handleRate(recipe, rating)}
                             onAddToPlanner={addToSlot ? () => handleAddToPlanner(recipe) : undefined}
@@ -278,7 +321,7 @@ export default function Home() {
                   <RecipeCard
                     key={recipe.id}
                     recipe={recipe}
-                    isFavourite={storage.isFavourite(recipe.id)}
+                    isFavourite={favourites.some(r => r.id === recipe.id)}
                     onFavourite={() => handleFavourite(recipe)}
                     onRate={rating => handleRate(recipe, rating)}
                     onAddToPlanner={addToSlot ? () => handleAddToPlanner(recipe) : undefined}
