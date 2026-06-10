@@ -24,11 +24,24 @@ const TAG_STYLES: Record<string, string> = {
 
 export default function RecipeCard({ recipe, isFavourite, onFavourite, onRate, onAddToPlanner, onFillAll, addToSlot, servings }: Props) {
   const [expanded, setExpanded] = useState(false)
+  const [ratingFeedback, setRatingFeedback] = useState<'liked' | 'disliked' | null>(null)
+  const [dismissing, setDismissing] = useState(false)
   const scale = servings ? servings / recipe.servings : 1
   const scaledCost = (recipe.estimatedCostNZD * scale).toFixed(2)
 
+  const handleRate = (rating: 'liked' | 'disliked') => {
+    setRatingFeedback(rating)
+    if (rating === 'disliked') {
+      setDismissing(true)
+      setTimeout(() => onRate('disliked'), 400)
+    } else {
+      onRate('liked')
+      setTimeout(() => setRatingFeedback(null), 1200)
+    }
+  }
+
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-400 ${dismissing ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
       <div className="p-4">
         <div className="flex justify-between items-start gap-2 mb-2">
           <h3 className="font-bold text-gray-900 text-base leading-tight">{recipe.name}</h3>
@@ -92,11 +105,19 @@ export default function RecipeCard({ recipe, isFavourite, onFavourite, onRate, o
               All {addToSlot.mealType}s
             </button>
           )}
-          <button onClick={() => onRate('liked')} className="p-2 rounded-xl bg-green-50 text-green-600 hover:bg-green-100 transition-colors">
-            <ThumbsUp size={14} />
+          <button
+            onClick={() => handleRate('liked')}
+            className={`p-2 rounded-xl transition-all ${ratingFeedback === 'liked' ? 'bg-green-500 text-white scale-110' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}
+            title="Like this recipe"
+          >
+            <ThumbsUp size={14} fill={ratingFeedback === 'liked' ? 'currentColor' : 'none'} />
           </button>
-          <button onClick={() => onRate('disliked')} className="p-2 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
-            <ThumbsDown size={14} />
+          <button
+            onClick={() => handleRate('disliked')}
+            className={`p-2 rounded-xl transition-all ${ratingFeedback === 'disliked' ? 'bg-red-500 text-white scale-110' : 'bg-red-50 text-red-500 hover:bg-red-100'}`}
+            title="Dislike — remove this recipe"
+          >
+            <ThumbsDown size={14} fill={ratingFeedback === 'disliked' ? 'currentColor' : 'none'} />
           </button>
         </div>
       </div>
