@@ -14,6 +14,7 @@ export default function HouseholdSetup({ onReady }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
+  const [pendingReady, setPendingReady] = useState<{ householdId: string; code: string } | null>(null)
 
   const handleCreate = async () => {
     setLoading(true)
@@ -22,8 +23,8 @@ export default function HouseholdSetup({ onReady }: Props) {
     setLoading(false)
     if (!result) { setError('Could not create household. Try again.'); return }
     setCreatedCode(result.code)
+    setPendingReady(result)
     setMode('created')
-    onReady(result.householdId, result.code)
   }
 
   const handleJoin = async () => {
@@ -61,6 +62,12 @@ export default function HouseholdSetup({ onReady }: Props) {
             </button>
           </div>
           <p className="text-xs text-gray-400">Your partner opens the app and taps "Join household", then enters this code.</p>
+          <button
+            onClick={() => pendingReady && onReady(pendingReady.householdId, pendingReady.code)}
+            className="w-full py-4 bg-emerald-500 text-white font-bold rounded-2xl text-lg hover:bg-emerald-600 transition-colors"
+          >
+            Let's go →
+          </button>
         </div>
       </div>
     )
