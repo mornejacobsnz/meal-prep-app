@@ -9,7 +9,7 @@ import RecipeCard from '@/components/RecipeCard'
 import WeeklyPlanner from '@/components/WeeklyPlanner'
 import ShoppingList from '@/components/ShoppingList'
 import HouseholdSetup from '@/components/HouseholdSetup'
-import { ChefHat, CalendarDays, ShoppingCart, Heart, RefreshCw, X, Users } from 'lucide-react'
+import { ChefHat, CalendarDays, ShoppingCart, Heart, RefreshCw, X, Users, Copy, Check } from 'lucide-react'
 
 type Tab = 'discover' | 'planner' | 'shopping' | 'favourites'
 
@@ -26,6 +26,8 @@ export default function Home() {
   const [smartFilling, setSmartFilling] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [addToSlot, setAddToSlot] = useState<{ day: DayOfWeek; mealType: MealType } | null>(null)
+  const [showHouseholdModal, setShowHouseholdModal] = useState(false)
+  const [codeCopied, setCodeCopied] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -219,10 +221,13 @@ export default function Home() {
             <p className="text-xs text-gray-400">Budget: ${settings.weeklyBudgetNZD} NZD/week</p>
           </div>
           {householdCode && (
-            <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">
+            <button
+              onClick={() => setShowHouseholdModal(true)}
+              className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1 hover:bg-emerald-100 transition-colors"
+            >
               <Users size={11} className="text-emerald-500" />
               <span className="text-xs font-bold text-emerald-600 tracking-wider">{householdCode}</span>
-            </div>
+            </button>
           )}
         </div>
         {addToSlot && (
@@ -382,6 +387,39 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      {/* Household code modal */}
+      {showHouseholdModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setShowHouseholdModal(false)}>
+          <div className="bg-white rounded-t-3xl w-full max-w-lg p-6 space-y-5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users size={18} className="text-emerald-500" />
+                <h3 className="font-bold text-gray-900">Your Household</h3>
+              </div>
+              <button onClick={() => setShowHouseholdModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500">Share this code with anyone you want to plan meals with. They open the app and tap "Join household".</p>
+            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 text-center">
+              <div className="text-4xl font-bold tracking-[0.3em] text-gray-900 mb-3">{householdCode}</div>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(householdCode)
+                  setCodeCopied(true)
+                  setTimeout(() => setCodeCopied(false), 2000)
+                }}
+                className="flex items-center gap-1.5 mx-auto text-sm text-emerald-600 font-medium"
+              >
+                {codeCopied ? <Check size={14} /> : <Copy size={14} />}
+                {codeCopied ? 'Copied!' : 'Copy code'}
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 text-center">App URL: meal-prep-app-rouge.vercel.app</p>
+          </div>
+        </div>
+      )}
 
       {/* Bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-lg max-w-lg mx-auto">
