@@ -6,10 +6,11 @@ const client = new Anthropic()
 
 export async function POST(req: NextRequest) {
   try {
-    const { tasteMemory, settings, mood = '' } = await req.json() as {
+    const { tasteMemory, settings, mood = '', favouriteNames = [] } = await req.json() as {
       tasteMemory: TasteMemory
       settings: AppSettings
       mood?: string
+      favouriteNames?: string[]
     }
 
     const { activeDays, filters, weeklyBudgetNZD, defaultServings } = settings
@@ -33,6 +34,9 @@ export async function POST(req: NextRequest) {
       ? 'ALL recipes must include meat, poultry, or seafood.'
       : ''
 
+    const favouritesContext = favouriteNames.length > 0
+      ? `Saved favourites (strong preference — recreate similar style/dishes): ${favouriteNames.slice(0, 20).join(', ')}`
+      : ''
     const likedContext = tasteMemory.liked.length > 0
       ? `Liked recipes (use as inspiration, similar style): ${tasteMemory.liked.slice(0, 15).join(', ')}`
       : ''
@@ -56,6 +60,7 @@ export async function POST(req: NextRequest) {
     const prompt = `You are a smart meal planning AI. Generate a personalised weekly meal plan.
 
 User profile:
+${favouritesContext}
 ${likedContext}
 ${dislikedContext}
 ${likedIngredients}

@@ -10,6 +10,7 @@ import WeeklyPlanner from '@/components/WeeklyPlanner'
 import ShoppingList from '@/components/ShoppingList'
 import HouseholdSetup from '@/components/HouseholdSetup'
 import MoodBar from '@/components/MoodBar'
+import SlotPicker from '@/components/SlotPicker'
 import { ChefHat, CalendarDays, ShoppingCart, Heart, RefreshCw, X, Users, Copy, Check } from 'lucide-react'
 
 type Tab = 'discover' | 'planner' | 'shopping' | 'favourites'
@@ -29,6 +30,7 @@ export default function Home() {
   const [addToSlot, setAddToSlot] = useState<{ day: DayOfWeek; mealType: MealType } | null>(null)
   const [showHouseholdModal, setShowHouseholdModal] = useState(false)
   const [codeCopied, setCodeCopied] = useState(false)
+  const [slotPickerRecipe, setSlotPickerRecipe] = useState<Recipe | null>(null)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -172,6 +174,18 @@ export default function Home() {
     setTab('planner')
   }
 
+  const handleSlotPickerAssign = (day: DayOfWeek, mealType: MealType) => {
+    if (!weeklyPlan || !slotPickerRecipe) return
+    const updated: WeeklyPlan = {
+      ...weeklyPlan,
+      slots: weeklyPlan.slots.map(slot =>
+        slot.day === day && slot.mealType === mealType ? { ...slot, recipe: slotPickerRecipe } : slot
+      ),
+    }
+    handlePlanUpdate(updated)
+    setSlotPickerRecipe(null)
+  }
+
   const handleActiveDaysChange = (days: DayOfWeek[]) => {
     const updated = { ...settings, activeDays: days }
     saveSettings(updated)
@@ -185,7 +199,7 @@ export default function Home() {
       const res = await fetch('/api/smart-fill', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tasteMemory, settings: smartSettings, mood: settings.mood }),
+        body: JSON.stringify({ tasteMemory, settings: smartSettings, mood: settings.mood, favouriteNames: favourites.map(r => r.name) }),
       })
       if (!res.ok) throw new Error('Smart fill failed')
       const { assignedRecipes } = await res.json()
@@ -388,7 +402,7 @@ export default function Home() {
                   isFavourite={true}
                   onFavourite={() => handleFavourite(recipe)}
                   onRate={rating => handleRate(recipe, rating)}
-                  onAddToPlanner={addToSlot ? () => handleAddToPlanner(recipe) : undefined}
+                  onAddToPlanner={() => setSlotPickerRecipe(recipe)}
                   onFillAll={addToSlot ? (mt) => handleFillAll(recipe, mt) : undefined}
                   addToSlot={addToSlot}
                   servings={settings.defaultServings}
@@ -398,6 +412,17 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      {/* Slot picker modal (from favourites) */}
+      {slotPickerRecipe && weeklyPlan && (
+        <SlotPicker
+          plan={weeklyPlan}
+          activeDays={settings.activeDays}
+          recipeName={slotPickerRecipe.name}
+          onPick={handleSlotPickerAssign}
+          onClose={() => setSlotPickerRecipe(null)}
+        />
+      )}
 
       {/* Household code modal */}
       {showHouseholdModal && (
