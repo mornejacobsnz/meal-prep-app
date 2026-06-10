@@ -98,6 +98,7 @@ Return ONLY a valid JSON array of ${totalRecipes} recipe objects with an additio
   "steps": ["Step 1...", "Step 2..."],
   "tags": ["simple","under-30-min","kid-friendly","meal-prep-friendly"] (only applicable),
   "nutrition": { "calories": 450, "protein": "35g", "carbs": "40g", "fat": "12g" },
+  // nutrition values are PER SERVING (per person), not total
   "createdAt": "${new Date().toISOString()}"
 }
 

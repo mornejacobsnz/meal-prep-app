@@ -75,6 +75,7 @@ Return ONLY a valid JSON array. Each recipe must follow this exact structure:
   "steps": ["Step 1...", "Step 2..."],
   "tags": ["simple","quick","under-30-min","kid-friendly"] (include only applicable tags),
   "nutrition": { "calories": 450, "protein": "35g", "carbs": "40g", "fat": "12g" },
+  // nutrition values are PER SERVING (per person), not total
   "createdAt": "${new Date().toISOString()}"
 }
 

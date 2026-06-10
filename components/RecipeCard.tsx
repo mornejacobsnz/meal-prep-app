@@ -152,18 +152,21 @@ export default function RecipeCard({ recipe, isFavourite, onFavourite, onRate, o
           </div>
 
           {recipe.nutrition && (
-            <div className="grid grid-cols-4 gap-2">
-              {[
-                { label: 'Cal', value: recipe.nutrition.calories },
-                { label: 'Protein', value: recipe.nutrition.protein },
-                { label: 'Carbs', value: recipe.nutrition.carbs },
-                { label: 'Fat', value: recipe.nutrition.fat },
-              ].map(({ label, value }) => (
-                <div key={label} className="bg-white rounded-xl p-2 text-center">
-                  <div className="text-xs text-gray-400">{label}</div>
-                  <div className="text-sm font-bold text-gray-700">{value}</div>
-                </div>
-              ))}
+            <div className="space-y-1.5">
+              <div className="text-xs text-gray-400 font-medium">Per serving</div>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { label: 'Cal', value: recipe.nutrition.calories },
+                  { label: 'Protein', value: recipe.nutrition.protein },
+                  { label: 'Carbs', value: recipe.nutrition.carbs },
+                  { label: 'Fat', value: recipe.nutrition.fat },
+                ].map(({ label, value }) => (
+                  <div key={label} className="bg-white rounded-xl p-2 text-center">
+                    <div className="text-xs text-gray-400">{label}</div>
+                    <div className="text-sm font-bold text-gray-700">{value}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
