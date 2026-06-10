@@ -7,7 +7,12 @@ interface Props {
   plan: WeeklyPlan
 }
 
-interface AggregatedIngredient extends Ingredient {
+interface AggregatedIngredient {
+  name: string
+  quantity: number
+  unit: string
+  quantityDisplay: string
+  estimatedCostNZD: number
   checked: boolean
   category: string
   isStaple: boolean
@@ -80,9 +85,13 @@ function normalizeIngredientName(name: string): string {
   return n.charAt(0).toUpperCase() + n.slice(1).toLowerCase()
 }
 
+function fmtQty(qty: number): string {
+  return qty % 1 === 0 ? String(qty) : qty.toFixed(qty < 10 ? 1 : 0)
+}
+
 function aggregateIngredients(plan: WeeklyPlan): AggregatedIngredient[] {
-  // key: normalizedName|baseUnit — values stored in base units then converted back for display
-  const map = new Map<string, { item: AggregatedIngredient; baseQty: number; baseUnit: string; baseCost: number }>()
+  // Group by normalised name only — then sub-group compatible units
+  const nameMap = new Map<string, { normName: string; unitBuckets: Map<string, { qty: number; unit: string }>; cost: number; ing: Ingredient }>()
 
   plan.slots.forEach(slot => {
     if (!slot.recipe) return
@@ -90,33 +99,42 @@ function aggregateIngredients(plan: WeeklyPlan): AggregatedIngredient[] {
       const normName = normalizeIngredientName(ing.name)
       const normUnit = normalizeUnit(ing.unit)
       const { qty: bQty, unit: bUnit } = toBase(ing.quantity, normUnit)
-      const key = `${normName.toLowerCase()}|${bUnit}`
+      const nameKey = normName.toLowerCase()
 
-      if (map.has(key)) {
-        const entry = map.get(key)!
-        entry.baseQty += bQty
-        entry.baseCost += ing.estimatedCostNZD
+      if (!nameMap.has(nameKey)) {
+        nameMap.set(nameKey, { normName, unitBuckets: new Map(), cost: 0, ing })
+      }
+      const entry = nameMap.get(nameKey)!
+      entry.cost += ing.estimatedCostNZD
+      const bucket = entry.unitBuckets.get(bUnit)
+      if (bucket) {
+        bucket.qty += bQty
       } else {
-        map.set(key, {
-          item: {
-            ...ing,
-            name: normName,
-            unit: normUnit,
-            checked: false,
-            category: getCategory(normName),
-            isStaple: isStaple({ ...ing, name: normName, unit: normUnit }),
-          },
-          baseQty: bQty,
-          baseUnit: bUnit,
-          baseCost: ing.estimatedCostNZD,
-        })
+        entry.unitBuckets.set(bUnit, { qty: bQty, unit: bUnit })
       }
     })
   })
 
-  return Array.from(map.values()).map(({ item, baseQty, baseUnit, baseCost }) => {
-    const { qty, unit } = fromBase(baseQty, baseUnit)
-    return { ...item, quantity: qty, unit, estimatedCostNZD: baseCost }
+  return Array.from(nameMap.values()).map(({ normName, unitBuckets, cost, ing }) => {
+    // Convert base units back to display units and build display string
+    const parts = Array.from(unitBuckets.values()).map(({ qty, unit }) => {
+      const { qty: dQty, unit: dUnit } = fromBase(qty, unit)
+      return { qty: dQty, unit: dUnit }
+    })
+
+    const quantityDisplay = parts.map(p => `${fmtQty(p.qty)} ${p.unit}`).join(' + ')
+    const { qty: primaryQty, unit: primaryUnit } = parts[0]
+
+    return {
+      name: normName,
+      quantity: primaryQty,
+      unit: primaryUnit,
+      quantityDisplay,
+      estimatedCostNZD: cost,
+      checked: false,
+      category: getCategory(normName),
+      isStaple: isStaple({ ...ing, name: normName, unit: primaryUnit }),
+    }
   })
 }
 
@@ -263,9 +281,7 @@ function ShoppingItem({ item, onToggle }: { item: AggregatedIngredient; onToggle
         </span>
       </div>
       <div className="text-right flex-shrink-0">
-        <div className="text-sm text-gray-600">
-          {item.quantity % 1 === 0 ? item.quantity : item.quantity.toFixed(1)} {item.unit}
-        </div>
+        <div className="text-sm text-gray-600">{item.quantityDisplay}</div>
         <div className="text-xs text-gray-400">~${item.estimatedCostNZD.toFixed(2)}</div>
       </div>
     </button>
