@@ -6,20 +6,25 @@ const client = new Anthropic()
 
 export async function POST(req: NextRequest) {
   try {
-    const { recipes, servings } = await req.json() as { recipes: Recipe[]; servings: number }
+    const { recipes, lunchServings, dinnerServings } = await req.json() as { recipes: Recipe[]; lunchServings: number; dinnerServings: number }
 
-    const recipeList = recipes.map(r => ({
-      name: r.name,
-      totalTime: r.totalTime,
-      ingredients: r.ingredients.map(i => `${i.quantity}${i.unit} ${i.name}`).join(', '),
-      steps: r.steps,
-    }))
+    const recipeList = recipes.map(r => {
+      const servings = r.mealType.includes('lunch') ? lunchServings : dinnerServings
+      return {
+        name: r.name,
+        mealType: r.mealType.join('/'),
+        servings,
+        totalTime: r.totalTime,
+        ingredients: r.ingredients.map(i => `${i.quantity}${i.unit} ${i.name}`).join(', '),
+        steps: r.steps,
+      }
+    })
 
     const prompt = `You are a professional meal prep coach. Given a list of recipes for the week, generate a practical batch cooking session guide.
 
-Recipes to prep (${servings} servings each):
+Recipes to prep (scaled per meal type — lunches for ${lunchServings} people, dinners for ${dinnerServings} people):
 ${recipeList.map((r, i) => `
-${i + 1}. ${r.name} (${r.totalTime} min total)
+${i + 1}. ${r.name} [${r.mealType}, ${r.servings} servings] (${r.totalTime} min total)
    Ingredients: ${r.ingredients}
    Steps: ${r.steps.join(' | ')}
 `).join('')}

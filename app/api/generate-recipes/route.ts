@@ -6,10 +6,11 @@ const client = new Anthropic()
 
 export async function POST(req: NextRequest) {
   try {
-    const { filters, budgetPerMeal, servings, tasteMemory, mood = '', count = 6 } = await req.json() as {
+    const { filters, budgetPerMeal, lunchServings, dinnerServings, tasteMemory, mood = '', count = 6 } = await req.json() as {
       filters: Filters
       budgetPerMeal: number
-      servings: number
+      lunchServings: number
+      dinnerServings: number
       tasteMemory: TasteMemory
       mood?: string
       count?: number
@@ -53,9 +54,9 @@ export async function POST(req: NextRequest) {
 Requirements:
 ${splitInstruction}
 ${dietInstruction}
-- Budget: NZD $${budgetPerMeal.toFixed(2)} per meal (for ${servings} servings)
+- Budget: NZD $${budgetPerMeal.toFixed(2)} per meal
 - Tags required: ${tagList.length > 0 ? tagList.join(', ') : 'no specific restrictions'}
-- Servings: ${servings} people
+- Servings: ${lunchServings} for lunch recipes, ${dinnerServings} for dinner recipes
 ${likedContext}${dislikedContext}${likedIngredients}${dislikedIngredients}${mood ? `\nThis week's vibe/mood: ${mood} — lean strongly into this when choosing recipes.` : ''}
 
 Return ONLY a valid JSON array. Each recipe must follow this exact structure:
@@ -67,7 +68,7 @@ Return ONLY a valid JSON array. Each recipe must follow this exact structure:
   "prepTime": <minutes>,
   "cookTime": <minutes>,
   "totalTime": <minutes>,
-  "servings": ${servings},
+  "servings": <use ${lunchServings} for lunch or ${dinnerServings} for dinner>,
   "estimatedCostNZD": <total cost in NZD for all servings>,
   "ingredients": [
     { "name": "ingredient", "quantity": 500, "unit": "g", "estimatedCostNZD": 2.50 }

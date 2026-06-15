@@ -6,6 +6,21 @@ const KEYS = {
   tasteMemory: 'mealprep_taste_memory',
   settings: 'mealprep_settings',
   recipeCache: 'mealprep_recipe_cache',
+  planGuide: 'mealprep_plan_guide',
+}
+
+export interface CarryOverRecipe {
+  id: string
+  name: string
+  slots: string[]
+}
+
+export interface StoredPlanGuide {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  guide: any
+  completedRecipeIds: string[]
+  lockedAt: string
+  carryOverRecipes: CarryOverRecipe[]
 }
 
 const RECIPE_CACHE_TTL_MS = 8 * 60 * 60 * 1000 // 8 hours
@@ -18,7 +33,8 @@ interface RecipeCache {
 
 export const DEFAULT_SETTINGS: AppSettings = {
   weeklyBudgetNZD: 150,
-  defaultServings: 4,
+  lunchServings: 2,
+  dinnerServings: 4,
   filters: {
     simple: false,
     under30min: false,
@@ -104,6 +120,10 @@ export const storage = {
 
   getSettings: (): AppSettings => get(KEYS.settings, DEFAULT_SETTINGS),
   saveSettings: (settings: AppSettings) => set(KEYS.settings, settings),
+
+  getPlanGuideState: (): StoredPlanGuide | null => get<StoredPlanGuide | null>(KEYS.planGuide, null),
+  savePlanGuideState: (state: StoredPlanGuide) => set(KEYS.planGuide, state),
+  clearPlanGuideState: () => { if (typeof window !== 'undefined') localStorage.removeItem(KEYS.planGuide) },
 
   getRecipeCache: (filterKey: string): Recipe[] | null => {
     const cached = get<RecipeCache | null>(KEYS.recipeCache, null)

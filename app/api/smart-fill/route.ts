@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
       favouriteNames?: string[]
     }
 
-    const { activeDays, filters, weeklyBudgetNZD, defaultServings } = settings
+    const { activeDays, filters, weeklyBudgetNZD, lunchServings, dinnerServings } = settings
     const budgetPerMeal = weeklyBudgetNZD / (activeDays.length * 2)
 
     const mealSlots: { day: DayOfWeek; mealType: MealType }[] = []
@@ -68,8 +68,8 @@ ${dislikedIngredients}
 
 Plan requirements:
 - Days to fill: ${slotsDescription}
-- Budget: NZD $${budgetPerMeal.toFixed(2)} per meal (for ${defaultServings} servings)
-- Servings: ${defaultServings} people
+- Budget: NZD $${budgetPerMeal.toFixed(2)} per meal
+- Servings: ${lunchServings} for lunch, ${dinnerServings} for dinner
 - Tags: ${tagList.length > 0 ? tagList.join(', ') : 'no restrictions'}
 - ${dietInstruction}
 - No recipe should appear more than once in the week
@@ -90,7 +90,7 @@ Return ONLY a valid JSON array of ${totalRecipes} recipe objects with an additio
   "prepTime": <minutes>,
   "cookTime": <minutes>,
   "totalTime": <minutes>,
-  "servings": ${defaultServings},
+  "servings": <use ${lunchServings} for lunch or ${dinnerServings} for dinner>,
   "estimatedCostNZD": <total cost NZD for all servings>,
   "ingredients": [
     { "name": "ingredient", "quantity": 500, "unit": "g", "estimatedCostNZD": 2.50 }

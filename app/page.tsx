@@ -91,7 +91,7 @@ export default function Home() {
 
   const generateRecipes = useCallback(async (force = false) => {
     const budgetPerMeal = settings.weeklyBudgetNZD / 14
-    const filterKey = JSON.stringify({ filters: settings.filters, budgetPerMeal: budgetPerMeal.toFixed(2), servings: settings.defaultServings, mood: settings.mood })
+    const filterKey = JSON.stringify({ filters: settings.filters, budgetPerMeal: budgetPerMeal.toFixed(2), lunchServings: settings.lunchServings, dinnerServings: settings.dinnerServings, mood: settings.mood })
 
     if (!force) {
       const cached = storage.getRecipeCache(filterKey)
@@ -110,7 +110,8 @@ export default function Home() {
         body: JSON.stringify({
           filters: settings.filters,
           budgetPerMeal,
-          servings: settings.defaultServings,
+          lunchServings: settings.lunchServings,
+          dinnerServings: settings.dinnerServings,
           tasteMemory,
           mood: settings.mood,
           count: settings.filters.mealType === 'both' ? 10 : 6,
@@ -129,7 +130,10 @@ export default function Home() {
 
   useEffect(() => {
     if (mounted && tab === 'discover' && recipes.length === 0) {
-      generateRecipes()
+      const budgetPerMeal = settings.weeklyBudgetNZD / 14
+      const filterKey = JSON.stringify({ filters: settings.filters, budgetPerMeal: budgetPerMeal.toFixed(2), lunchServings: settings.lunchServings, dinnerServings: settings.dinnerServings, mood: settings.mood })
+      const cached = storage.getRecipeCache(filterKey)
+      if (cached) setRecipes(cached)
     }
   }, [mounted, tab])
 
@@ -251,7 +255,7 @@ export default function Home() {
     { key: 'planner' as Tab, label: 'Planner', icon: CalendarDays },
     { key: 'shopping' as Tab, label: 'Shopping', icon: ShoppingCart },
     { key: 'favourites' as Tab, label: 'Saved', icon: Heart },
-    { key: 'prep' as Tab, label: 'Prep', icon: ClipboardList },
+    { key: 'prep' as Tab, label: 'Guide', icon: ClipboardList },
   ]
 
   return (
@@ -260,7 +264,7 @@ export default function Home() {
       <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 pt-4 pb-3 shadow-sm">
         <div className="flex items-center justify-between mb-1">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Meal Prep</h1>
+            <h1 className="text-xl font-bold text-gray-900">Meal Planner</h1>
             <p className="text-xs text-gray-400">Budget: ${settings.weeklyBudgetNZD} NZD/week</p>
           </div>
           <div className="flex items-center gap-2">
@@ -311,8 +315,10 @@ export default function Home() {
             <BudgetSlider
               value={settings.weeklyBudgetNZD}
               onChange={v => saveSettings({ ...settings, weeklyBudgetNZD: v })}
-              servings={settings.defaultServings}
-              onServingsChange={n => saveSettings({ ...settings, defaultServings: n })}
+              lunchServings={settings.lunchServings}
+              dinnerServings={settings.dinnerServings}
+              onLunchServingsChange={n => saveSettings({ ...settings, lunchServings: n })}
+              onDinnerServingsChange={n => saveSettings({ ...settings, dinnerServings: n })}
             />
             <FilterBar
               filters={settings.filters}
@@ -350,6 +356,12 @@ export default function Home() {
                   </div>
                 ))}
               </div>
+            ) : recipes.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-gray-400 text-center">
+                <ChefHat size={44} className="mb-3 opacity-30" />
+                <p className="text-sm font-medium text-gray-500">No recipes yet</p>
+                <p className="text-xs mt-1 opacity-70">Tap Refresh to generate this week's recipes</p>
+              </div>
             ) : settings.filters.mealType === 'both' ? (
               <div className="space-y-6">
                 {([
@@ -372,7 +384,7 @@ export default function Home() {
                             onAddToPlanner={addToSlot ? () => handleAddToPlanner(recipe) : undefined}
                             onFillAll={addToSlot ? (mt) => handleFillAll(recipe, mt) : undefined}
                             addToSlot={addToSlot}
-                            servings={settings.defaultServings}
+                            servings={recipe.mealType.includes('lunch') ? settings.lunchServings : settings.dinnerServings}
                           />
                         ))}
                       </div>
@@ -392,7 +404,7 @@ export default function Home() {
                     onAddToPlanner={addToSlot ? () => handleAddToPlanner(recipe) : undefined}
                     onFillAll={addToSlot ? (mt) => handleFillAll(recipe, mt) : undefined}
                     addToSlot={addToSlot}
-                    servings={settings.defaultServings}
+                    servings={recipe.mealType.includes('lunch') ? settings.lunchServings : settings.dinnerServings}
                   />
                 ))}
               </div>
@@ -422,7 +434,7 @@ export default function Home() {
 
         {tab === 'prep' && weeklyPlan && (
           <div className="p-4">
-            <PrepGuide plan={weeklyPlan} activeDays={settings.activeDays} servings={settings.defaultServings} />
+            <PrepGuide plan={weeklyPlan} activeDays={settings.activeDays} lunchServings={settings.lunchServings} dinnerServings={settings.dinnerServings} />
           </div>
         )}
 
@@ -445,7 +457,7 @@ export default function Home() {
                   onAddToPlanner={() => setSlotPickerRecipe(recipe)}
                   onFillAll={addToSlot ? (mt) => handleFillAll(recipe, mt) : undefined}
                   addToSlot={addToSlot}
-                  servings={settings.defaultServings}
+                  servings={recipe.mealType.includes('lunch') ? settings.lunchServings : settings.dinnerServings}
                 />
               ))
             )}

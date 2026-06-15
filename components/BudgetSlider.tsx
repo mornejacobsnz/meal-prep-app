@@ -3,11 +3,13 @@
 interface Props {
   value: number
   onChange: (value: number) => void
-  servings: number
-  onServingsChange: (servings: number) => void
+  lunchServings: number
+  dinnerServings: number
+  onLunchServingsChange: (n: number) => void
+  onDinnerServingsChange: (n: number) => void
 }
 
-export default function BudgetSlider({ value, onChange, servings, onServingsChange }: Props) {
+export default function BudgetSlider({ value, onChange, lunchServings, dinnerServings, onLunchServingsChange, onDinnerServingsChange }: Props) {
   const perMeal = value / 14
 
   return (
@@ -33,25 +35,45 @@ export default function BudgetSlider({ value, onChange, servings, onServingsChan
         </div>
       </div>
 
-      <div>
-        <div className="flex justify-between items-center mb-2">
-          <label className="text-sm font-semibold text-gray-700">Servings</label>
-          <span className="text-lg font-bold text-indigo-600">{servings} people</span>
+      <div className="space-y-3">
+        <label className="text-sm font-semibold text-gray-700">Servings</label>
+
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-gray-500 w-14">🥗 Lunch</span>
+          <div className="flex gap-1.5 flex-1">
+            {[1, 2, 3, 4, 5, 6].map(n => (
+              <button
+                key={n}
+                onClick={() => onLunchServingsChange(n)}
+                className={`flex-1 py-1.5 rounded-xl text-sm font-semibold transition-all ${
+                  lunchServings === n
+                    ? 'bg-indigo-500 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex gap-2">
-          {[1, 2, 3, 4, 5, 6].map(n => (
-            <button
-              key={n}
-              onClick={() => onServingsChange(n)}
-              className={`flex-1 py-1.5 rounded-xl text-sm font-semibold transition-all ${
-                servings === n
-                  ? 'bg-indigo-500 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {n}
-            </button>
-          ))}
+
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-gray-500 w-14">🍽️ Dinner</span>
+          <div className="flex gap-1.5 flex-1">
+            {[1, 2, 3, 4, 5, 6].map(n => (
+              <button
+                key={n}
+                onClick={() => onDinnerServingsChange(n)}
+                className={`flex-1 py-1.5 rounded-xl text-sm font-semibold transition-all ${
+                  dinnerServings === n
+                    ? 'bg-emerald-500 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>

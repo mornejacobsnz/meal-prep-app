@@ -69,7 +69,8 @@ export interface Filters {
 
 export interface AppSettings {
   weeklyBudgetNZD: number
-  defaultServings: number
+  lunchServings: number
+  dinnerServings: number
   filters: Filters
   activeDays: DayOfWeek[]
   mood: string
