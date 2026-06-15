@@ -12,7 +12,7 @@ import HouseholdSetup from '@/components/HouseholdSetup'
 import MoodBar from '@/components/MoodBar'
 import SlotPicker from '@/components/SlotPicker'
 import PrepGuide from '@/components/PrepGuide'
-import { ChefHat, CalendarDays, ShoppingCart, Heart, RefreshCw, X, Users, Copy, Check, ClipboardList } from 'lucide-react'
+import { ChefHat, CalendarDays, ShoppingCart, Heart, RefreshCw, X, Users, Copy, Check, ClipboardList, Lock, Loader2 } from 'lucide-react'
 
 type Tab = 'discover' | 'planner' | 'shopping' | 'favourites' | 'prep'
 
@@ -35,6 +35,8 @@ export default function Home() {
   const [slotPickerRecipe, setSlotPickerRecipe] = useState<Recipe | null>(null)
   const [removingFavId, setRemovingFavId] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [lockingWeek, setLockingWeek] = useState(false)
+  const [guideRefreshKey, setGuideRefreshKey] = useState(0)
 
   useEffect(() => {
     setMounted(true)
@@ -247,6 +249,42 @@ export default function Home() {
     }
   }, [weeklyPlan, tasteMemory, settings])
 
+  const handleLockWeek = useCallback(async () => {
+    if (!weeklyPlan) return
+    setLockingWeek(true)
+    const filledSlots = weeklyPlan.slots.filter(s => settings.activeDays.includes(s.day) && s.recipe)
+    const uniqueRecipes: Recipe[] = []
+    const seen = new Set<string>()
+    for (const slot of filledSlots) {
+      if (slot.recipe && !seen.has(slot.recipe.id)) {
+        seen.add(slot.recipe.id)
+        uniqueRecipes.push(slot.recipe)
+      }
+    }
+    try {
+      const res = await fetch('/api/prep-guide', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipes: uniqueRecipes, lunchServings: settings.lunchServings, dinnerServings: settings.dinnerServings }),
+      })
+      if (!res.ok) throw new Error('Failed')
+      const { guide } = await res.json()
+      const prev = storage.getPlanGuideState()
+      storage.savePlanGuideState({
+        guide,
+        completedRecipeIds: [],
+        lockedAt: new Date().toISOString(),
+        carryOverRecipes: prev?.carryOverRecipes ?? [],
+      })
+      setGuideRefreshKey(k => k + 1)
+      setTab('prep')
+    } catch {
+      setError('Could not generate guide. Please try again.')
+    } finally {
+      setLockingWeek(false)
+    }
+  }, [weeklyPlan, settings])
+
   if (!mounted) return null
   if (!householdId) return <HouseholdSetup onReady={handleHouseholdReady} />
 
@@ -413,7 +451,7 @@ export default function Home() {
         )}
 
         {tab === 'planner' && weeklyPlan && (
-          <div className="p-4">
+          <div className="p-4 space-y-4">
             <WeeklyPlanner
               plan={weeklyPlan}
               onUpdate={handlePlanUpdate}
@@ -423,6 +461,19 @@ export default function Home() {
               onSmartFill={handleSmartFill}
               smartFilling={smartFilling}
             />
+            {weeklyPlan.slots.some(s => settings.activeDays.includes(s.day) && s.recipe) && (
+              <button
+                onClick={handleLockWeek}
+                disabled={lockingWeek}
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-emerald-500 text-white font-bold text-sm shadow-sm hover:bg-emerald-600 transition-colors disabled:opacity-60"
+              >
+                {lockingWeek ? (
+                  <><Loader2 size={16} className="animate-spin" />Generating recipe cards...</>
+                ) : (
+                  <><Lock size={15} />Lock the Week</>
+                )}
+              </button>
+            )}
           </div>
         )}
 
@@ -434,7 +485,7 @@ export default function Home() {
 
         {tab === 'prep' && weeklyPlan && (
           <div className="p-4">
-            <PrepGuide plan={weeklyPlan} activeDays={settings.activeDays} lunchServings={settings.lunchServings} dinnerServings={settings.dinnerServings} />
+            <PrepGuide key={guideRefreshKey} plan={weeklyPlan} activeDays={settings.activeDays} lunchServings={settings.lunchServings} dinnerServings={settings.dinnerServings} />
           </div>
         )}
 
