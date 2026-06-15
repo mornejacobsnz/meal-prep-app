@@ -220,8 +220,8 @@ export default function PrepGuide({ plan, activeDays, lunchServings, dinnerServi
         </div>
       )}
 
-      {/* Generate button */}
-      {!guide ? (
+      {/* Generate button — also show if guide is in old format (no recipes array) */}
+      {(!guide || !guide.recipes?.length) ? (
         <button
           onClick={generateGuide}
           disabled={loading || uniqueRecipes.length === 0}
@@ -238,7 +238,7 @@ export default function PrepGuide({ plan, activeDays, lunchServings, dinnerServi
       {error && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-600">{error}</div>}
 
       {/* Recipe cards */}
-      {guide && guide.recipes && (
+      {guide && guide.recipes?.length > 0 && (
         <div className="space-y-3">
           <h2 className="font-bold text-gray-900">Recipe Cards</h2>
 
