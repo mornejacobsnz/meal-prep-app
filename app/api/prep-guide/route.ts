@@ -14,59 +14,56 @@ export async function POST(req: NextRequest) {
         name: r.name,
         mealType: r.mealType.join('/'),
         servings,
+        prepTime: r.prepTime,
+        cookTime: r.cookTime,
         totalTime: r.totalTime,
-        ingredients: r.ingredients.map(i => `${i.quantity}${i.unit} ${i.name}`).join(', '),
+        ingredients: r.ingredients.map(i => `${i.quantity}${i.unit} ${i.name}`),
         steps: r.steps,
       }
     })
 
-    const prompt = `You are a professional meal prep coach. Given a list of recipes for the week, generate a practical batch cooking session guide.
+    const prompt = `You are a meal kit recipe writer like HelloFresh or Dinnerly. Given a list of recipes, generate a clear, friendly recipe card for each one — exactly as you'd find in a meal kit box.
 
-Recipes to prep (scaled per meal type — lunches for ${lunchServings} people, dinners for ${dinnerServings} people):
+Recipes (lunches scaled for ${lunchServings} people, dinners for ${dinnerServings} people):
 ${recipeList.map((r, i) => `
-${i + 1}. ${r.name} [${r.mealType}, ${r.servings} servings] (${r.totalTime} min total)
-   Ingredients: ${r.ingredients}
-   Steps: ${r.steps.join(' | ')}
+${i + 1}. ${r.name} [${r.mealType}, ${r.servings} servings]
+   Prep: ${r.prepTime} min | Cook: ${r.cookTime} min | Total: ${r.totalTime} min
+   Ingredients: ${r.ingredients.join(', ')}
+   Original steps: ${r.steps.join(' | ')}
 `).join('')}
 
-Generate a structured prep guide in this exact JSON format:
+Generate a JSON object with a "recipes" array. Each entry must follow this exact format:
 {
-  "sessionTime": "<estimated total prep session time, e.g. '2.5 hours'>",
-  "intro": "<1-2 sentence overview of the session>",
-  "phases": [
+  "recipes": [
     {
-      "title": "<phase name, e.g. 'Start First (longest cook)'>",
-      "emoji": "<single emoji>",
-      "items": [
-        {
-          "task": "<clear action>",
-          "note": "<optional tip or why>"
-        }
-      ]
+      "name": "<recipe name>",
+      "mealType": "<lunch or dinner>",
+      "servings": <number>,
+      "prepTime": "<e.g. 10 mins>",
+      "cookTime": "<e.g. 20 mins>",
+      "difficulty": "<Easy | Medium | Tricky>",
+      "ingredients": [
+        { "amount": "<e.g. 600g>", "item": "<e.g. chicken breast, diced>" }
+      ],
+      "steps": [
+        { "n": 1, "title": "<short step title, 3-5 words>", "detail": "<clear friendly instruction, 1-3 sentences. Mention exact times, temperatures, visual cues.>" }
+      ],
+      "tip": "<one practical chef tip specific to this dish>"
     }
-  ],
-  "storage": [
-    {
-      "recipe": "<recipe name>",
-      "container": "<best container type>",
-      "fridge": "<days in fridge>",
-      "freezer": "<days in freezer or 'not recommended'>",
-      "reheat": "<best way to reheat>"
-    }
-  ],
-  "proTips": ["<tip 1>", "<tip 2>", "<tip 3>"]
+  ]
 }
 
-Focus on:
-- What to start first (long cook times / oven items)
-- What can be prepped simultaneously (chopping while something cooks)
-- Shared ingredients to batch prep once (e.g. if multiple recipes use onion, dice all at once)
-- Realistic timing and practical tips
-- Keep it actionable and concise`
+Rules:
+- Rewrite the steps in a warm, clear meal-kit style (like HelloFresh). Each step should be actionable and self-contained.
+- Step titles are short and punchy: "Prep the veg", "Sear the chicken", "Make the sauce"
+- Ingredients list should match what someone needs to pull out — include prep notes in the item name (e.g. "red onion, finely diced")
+- 4-7 steps per recipe
+- Keep tip practical and specific to the dish, not generic cooking advice
+- Return ONLY the JSON, no other text`
 
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 4096,
+      max_tokens: 8192,
       messages: [{ role: 'user', content: prompt }],
     })
 
@@ -78,6 +75,6 @@ Focus on:
     return NextResponse.json({ guide })
   } catch (error) {
     console.error('Prep guide error:', error)
-    return NextResponse.json({ error: 'Failed to generate prep guide' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to generate plan guide' }, { status: 500 })
   }
 }

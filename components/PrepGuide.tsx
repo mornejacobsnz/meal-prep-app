@@ -2,7 +2,7 @@
 import { WeeklyPlan, Recipe, DayOfWeek } from '@/lib/types'
 import { storage, CarryOverRecipe } from '@/lib/storage'
 import { useState, useEffect } from 'react'
-import { ChefHat, Clock, Refrigerator, Lightbulb, Loader2, ChevronDown, ChevronUp, CheckCircle2, Circle, RotateCcw, AlertCircle } from 'lucide-react'
+import { ChefHat, Clock, Lightbulb, Loader2, CheckCircle2, Circle, RotateCcw, AlertCircle, ChevronDown, ChevronUp, Users } from 'lucide-react'
 
 interface Props {
   plan: WeeklyPlan
@@ -11,21 +11,29 @@ interface Props {
   dinnerServings: number
 }
 
+interface RecipeCard {
+  name: string
+  mealType: string
+  servings: number
+  prepTime: string
+  cookTime: string
+  difficulty: string
+  ingredients: { amount: string; item: string }[]
+  steps: { n: number; title: string; detail: string }[]
+  tip: string
+}
+
 interface PlanGuide {
-  sessionTime: string
-  intro: string
-  phases: { title: string; emoji: string; items: { task: string; note?: string }[] }[]
-  storage: { recipe: string; container: string; fridge: string; freezer: string; reheat: string }[]
-  proTips: string[]
+  recipes: RecipeCard[]
 }
 
 export default function PrepGuide({ plan, activeDays, lunchServings, dinnerServings }: Props) {
   const [guide, setGuide] = useState<PlanGuide | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [expandedStorage, setExpandedStorage] = useState(false)
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set())
   const [carryOvers, setCarryOvers] = useState<CarryOverRecipe[]>([])
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
 
   const filledSlots = plan.slots.filter(s => activeDays.includes(s.day) && s.recipe)
   const uniqueRecipes: Recipe[] = []
@@ -56,16 +64,20 @@ export default function PrepGuide({ plan, activeDays, lunchServings, dinnerServi
 
   const toggleComplete = (recipeId: string) => {
     const updated = new Set(completedIds)
-    if (updated.has(recipeId)) {
-      updated.delete(recipeId)
-    } else {
-      updated.add(recipeId)
-    }
+    if (updated.has(recipeId)) updated.delete(recipeId)
+    else updated.add(recipeId)
     setCompletedIds(updated)
     const saved = storage.getPlanGuideState()
-    if (saved) {
-      storage.savePlanGuideState({ ...saved, completedRecipeIds: Array.from(updated) })
-    }
+    if (saved) storage.savePlanGuideState({ ...saved, completedRecipeIds: Array.from(updated) })
+  }
+
+  const toggleCard = (name: string) => {
+    setExpandedCards(prev => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name)
+      else next.add(name)
+      return next
+    })
   }
 
   const generateGuide = async () => {
@@ -81,7 +93,6 @@ export default function PrepGuide({ plan, activeDays, lunchServings, dinnerServi
       const { guide: g } = await res.json()
       setGuide(g)
       setCompletedIds(new Set())
-      // Preserve any carry-overs that aren't in this week's plan
       const prev = storage.getPlanGuideState()
       const existingCarryOvers = (prev?.carryOverRecipes ?? []).filter(
         co => !uniqueRecipes.find(r => r.id === co.id)
@@ -93,6 +104,8 @@ export default function PrepGuide({ plan, activeDays, lunchServings, dinnerServi
         lockedAt: new Date().toISOString(),
         carryOverRecipes: existingCarryOvers,
       })
+      // Auto-expand first card
+      if (g.recipes?.length > 0) setExpandedCards(new Set([g.recipes[0].name]))
     } catch {
       setError('Could not generate guide. Try again.')
     } finally {
@@ -101,14 +114,9 @@ export default function PrepGuide({ plan, activeDays, lunchServings, dinnerServi
   }
 
   const handleNewWeek = () => {
-    // Unfinished meals from this week carry forward
     const unfinished: CarryOverRecipe[] = uniqueRecipes
       .filter(r => !completedIds.has(r.id))
-      .map(r => ({
-        id: r.id,
-        name: r.name,
-        slots: recipeSlotMap.get(r.id) ?? [],
-      }))
+      .map(r => ({ id: r.id, name: r.name, slots: recipeSlotMap.get(r.id) ?? [] }))
     storage.savePlanGuideState({
       guide: null,
       completedRecipeIds: [],
@@ -154,23 +162,19 @@ export default function PrepGuide({ plan, activeDays, lunchServings, dinnerServi
         </div>
       )}
 
-      {/* This week's menu with completion ticking */}
+      {/* This week's menu tick-off */}
       {uniqueRecipes.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-bold text-gray-900">This Week's Menu</h2>
             {guide && (
-              <button
-                onClick={handleNewWeek}
-                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
-              >
+              <button onClick={handleNewWeek} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors">
                 <RotateCcw size={11} />
                 New week
               </button>
             )}
           </div>
 
-          {/* Pending meals */}
           <div className="space-y-2">
             {pendingRecipes.map(recipe => {
               const slots = recipeSlotMap.get(recipe.id) ?? []
@@ -178,10 +182,7 @@ export default function PrepGuide({ plan, activeDays, lunchServings, dinnerServi
               return (
                 <div key={recipe.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3.5">
                   <div className="flex items-start gap-3">
-                    <button
-                      onClick={() => toggleComplete(recipe.id)}
-                      className="mt-0.5 flex-shrink-0 text-gray-300 hover:text-emerald-500 transition-colors"
-                    >
+                    <button onClick={() => toggleComplete(recipe.id)} className="mt-0.5 flex-shrink-0 text-gray-300 hover:text-emerald-500 transition-colors">
                       <Circle size={18} />
                     </button>
                     <div className="flex-1 min-w-0">
@@ -193,9 +194,7 @@ export default function PrepGuide({ plan, activeDays, lunchServings, dinnerServi
                         <Clock size={11} />
                         {recipe.totalTime}m
                       </span>
-                      {count > 1 && (
-                        <span className="bg-violet-100 text-violet-600 text-xs font-bold px-2 py-0.5 rounded-full">×{count}</span>
-                      )}
+                      {count > 1 && <span className="bg-violet-100 text-violet-600 text-xs font-bold px-2 py-0.5 rounded-full">×{count}</span>}
                     </div>
                   </div>
                 </div>
@@ -203,17 +202,13 @@ export default function PrepGuide({ plan, activeDays, lunchServings, dinnerServi
             })}
           </div>
 
-          {/* Done meals */}
           {doneRecipes.length > 0 && (
             <div className="mt-3 space-y-2">
               <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Done</p>
               {doneRecipes.map(recipe => (
                 <div key={recipe.id} className="bg-gray-50 rounded-2xl border border-gray-100 p-3.5 opacity-60">
                   <div className="flex items-start gap-3">
-                    <button
-                      onClick={() => toggleComplete(recipe.id)}
-                      className="mt-0.5 flex-shrink-0 text-emerald-500 hover:text-gray-300 transition-colors"
-                    >
+                    <button onClick={() => toggleComplete(recipe.id)} className="mt-0.5 flex-shrink-0 text-emerald-500 hover:text-gray-300 transition-colors">
                       <CheckCircle2 size={18} />
                     </button>
                     <p className="font-medium text-gray-500 text-sm line-through leading-snug">{recipe.name}</p>
@@ -225,7 +220,7 @@ export default function PrepGuide({ plan, activeDays, lunchServings, dinnerServi
         </div>
       )}
 
-      {/* Generate / regenerate button */}
+      {/* Generate button */}
       {!guide ? (
         <button
           onClick={generateGuide}
@@ -233,97 +228,99 @@ export default function PrepGuide({ plan, activeDays, lunchServings, dinnerServi
           className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-emerald-500 text-white font-semibold text-sm shadow-sm hover:bg-emerald-600 transition-colors disabled:opacity-60"
         >
           {loading ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              Building your plan guide...
-            </>
+            <><Loader2 size={16} className="animate-spin" />Building your plan guide...</>
           ) : (
-            <>
-              <ChefHat size={16} />
-              Generate Plan Guide
-            </>
+            <><ChefHat size={16} />Generate Plan Guide</>
           )}
         </button>
       ) : null}
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-600">{error}</div>
-      )}
+      {error && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-600">{error}</div>}
 
-      {/* Locked guide output */}
-      {guide && (
-        <div className="space-y-4">
-          {/* Header */}
-          <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-4 text-white">
-            <div className="flex items-center gap-2 mb-1">
-              <Clock size={14} />
-              <span className="text-sm font-semibold">{guide.sessionTime} total session</span>
-            </div>
-            <p className="text-sm opacity-90 leading-snug">{guide.intro}</p>
-          </div>
+      {/* Recipe cards */}
+      {guide && guide.recipes && (
+        <div className="space-y-3">
+          <h2 className="font-bold text-gray-900">Recipe Cards</h2>
 
-          {/* Phases */}
-          {guide.phases.map((phase: PlanGuide['phases'][number], pi: number) => (
-            <div key={pi} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
-                <span className="text-base">{phase.emoji}</span>
-                <span className="font-semibold text-sm text-gray-800">{phase.title}</span>
-              </div>
-              <div className="divide-y divide-gray-50">
-                {phase.items.map((item: { task: string; note?: string }, ii: number) => (
-                  <div key={ii} className="px-4 py-2.5">
-                    <p className="text-sm text-gray-800 font-medium">{item.task}</p>
-                    {item.note && <p className="text-xs text-gray-400 mt-0.5 leading-snug">{item.note}</p>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-
-          {/* Storage */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <button
-              onClick={() => setExpandedStorage(!expandedStorage)}
-              className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100"
-            >
-              <div className="flex items-center gap-2">
-                <Refrigerator size={15} className="text-blue-500" />
-                <span className="font-semibold text-sm text-gray-800">Storage Guide</span>
-              </div>
-              {expandedStorage ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
-            </button>
-            {expandedStorage && (
-              <div className="divide-y divide-gray-50">
-                {guide.storage.map((s: PlanGuide['storage'][number], si: number) => (
-                  <div key={si} className="px-4 py-3 space-y-1">
-                    <p className="text-sm font-semibold text-gray-800">{s.recipe}</p>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-gray-500">
-                      <span>📦 {s.container}</span>
-                      <span>❄️ Fridge: {s.fridge}</span>
-                      <span>🔥 Reheat: {s.reheat}</span>
-                      <span>🧊 Freeze: {s.freezer}</span>
+          {guide.recipes.map((card: RecipeCard) => {
+            const isExpanded = expandedCards.has(card.name)
+            return (
+              <div key={card.name} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                {/* Card header */}
+                <button
+                  onClick={() => toggleCard(card.name)}
+                  className="w-full flex items-start gap-3 p-4 text-left"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-gray-900 text-sm leading-snug">{card.name}</p>
+                    <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                      <span className="flex items-center gap-1 text-xs text-gray-500">
+                        <Clock size={11} />
+                        {card.prepTime} prep · {card.cookTime} cook
+                      </span>
+                      <span className="flex items-center gap-1 text-xs text-gray-500">
+                        <Users size={11} />
+                        {card.servings} servings
+                      </span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        card.difficulty === 'Easy' ? 'bg-emerald-100 text-emerald-700'
+                        : card.difficulty === 'Medium' ? 'bg-amber-100 text-amber-700'
+                        : 'bg-red-100 text-red-700'
+                      }`}>
+                        {card.difficulty}
+                      </span>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  {isExpanded ? <ChevronUp size={16} className="text-gray-400 flex-shrink-0 mt-1" /> : <ChevronDown size={16} className="text-gray-400 flex-shrink-0 mt-1" />}
+                </button>
 
-          {/* Pro tips */}
-          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-2.5">
-              <Lightbulb size={14} className="text-amber-500" />
-              <span className="font-semibold text-sm text-amber-800">Pro Tips</span>
-            </div>
-            <ul className="space-y-1.5">
-              {guide.proTips.map((tip: string, ti: number) => (
-                <li key={ti} className="text-xs text-amber-700 leading-snug flex gap-1.5">
-                  <span className="flex-shrink-0 mt-0.5">•</span>
-                  <span>{tip}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+                {isExpanded && (
+                  <div className="border-t border-gray-50">
+                    {/* Ingredients */}
+                    <div className="px-4 py-3">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Ingredients</p>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                        {card.ingredients.map((ing, i) => (
+                          <div key={i} className="flex items-start gap-1.5">
+                            <span className="text-xs font-bold text-gray-700 flex-shrink-0 min-w-[44px]">{ing.amount}</span>
+                            <span className="text-xs text-gray-500 leading-snug">{ing.item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Steps */}
+                    <div className="border-t border-gray-50 px-4 py-3">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Method</p>
+                      <div className="space-y-4">
+                        {card.steps.map((step) => (
+                          <div key={step.n} className="flex gap-3">
+                            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-500 text-white text-xs font-bold flex items-center justify-center mt-0.5">
+                              {step.n}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-gray-800 mb-0.5">{step.title}</p>
+                              <p className="text-xs text-gray-500 leading-relaxed">{step.detail}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Tip */}
+                    {card.tip && (
+                      <div className="border-t border-gray-50 px-4 py-3 bg-amber-50">
+                        <div className="flex items-start gap-2">
+                          <Lightbulb size={13} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                          <p className="text-xs text-amber-700 leading-snug">{card.tip}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
 
           {/* Regenerate */}
           <button
