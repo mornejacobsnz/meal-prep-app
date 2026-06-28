@@ -37,6 +37,7 @@ export default function Home() {
   const [mounted, setMounted] = useState(false)
   const [lockingWeek, setLockingWeek] = useState(false)
   const [guideRefreshKey, setGuideRefreshKey] = useState(0)
+  const [shoppingVersion, setShoppingVersion] = useState(0)
 
   useEffect(() => {
     setMounted(true)
@@ -277,6 +278,8 @@ export default function Home() {
         carryOverRecipes: prev?.carryOverRecipes ?? [],
       })
       setGuideRefreshKey(k => k + 1)
+      ;['mealprep_manual_shopping', 'mealprep_pantry_moved', 'mealprep_shopping_checked'].forEach(k => localStorage.removeItem(k))
+      setShoppingVersion(v => v + 1)
       setTab('prep')
     } catch {
       setError('Could not generate guide. Please try again.')
@@ -479,7 +482,7 @@ export default function Home() {
 
         {tab === 'shopping' && weeklyPlan && (
           <div className="p-4">
-            <ShoppingList plan={weeklyPlan} activeDays={settings.activeDays} />
+            <ShoppingList key={shoppingVersion} plan={weeklyPlan} activeDays={settings.activeDays} />
           </div>
         )}
 
