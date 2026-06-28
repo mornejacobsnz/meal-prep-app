@@ -187,6 +187,7 @@ export default function Home() {
       if (isFav) storage.removeFavourite(recipe.id)
       else storage.saveFavourite(recipe)
     }
+    if (!isFav) handleRate(recipe, 'liked')
   }
 
   const handleRate = (recipe: Recipe, rating: 'liked' | 'disliked' | 'neutral') => {
