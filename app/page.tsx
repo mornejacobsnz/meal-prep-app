@@ -369,7 +369,7 @@ export default function Home() {
         guide,
         completedRecipeIds: [],
         lockedAt: new Date().toISOString(),
-        carryOverRecipes: prev?.carryOverRecipes ?? [],
+        carryOverRecipes: [],
       }
       storage.savePlanGuideState(guideState)
       if (householdId) sync.savePlanGuide(householdId, guideState)
