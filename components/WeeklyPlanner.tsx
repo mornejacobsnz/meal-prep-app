@@ -56,7 +56,7 @@ export default function WeeklyPlanner({ plan, onUpdate, onSlotClick, activeDays,
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-500 text-white text-sm font-semibold shadow-sm hover:bg-violet-600 transition-colors disabled:opacity-60"
           >
             <Sparkles size={14} className={smartFilling ? 'animate-pulse' : ''} />
-            {smartFilling ? 'Planning...' : 'Smart Fill'}
+            {smartFilling ? 'Planning...' : 'Surprise Me'}
           </button>
         </div>
       </div>

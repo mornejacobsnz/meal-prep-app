@@ -12,7 +12,7 @@ import HouseholdSetup from '@/components/HouseholdSetup'
 import MoodBar from '@/components/MoodBar'
 import SlotPicker from '@/components/SlotPicker'
 import PrepGuide from '@/components/PrepGuide'
-import { ChefHat, CalendarDays, ShoppingCart, Heart, RefreshCw, X, Users, Copy, Check, ClipboardList, Lock, Loader2 } from 'lucide-react'
+import { ChefHat, CalendarDays, ShoppingCart, Heart, RefreshCw, X, Users, Copy, Check, ClipboardList, Lock, Loader2, Sparkles } from 'lucide-react'
 
 type Tab = 'discover' | 'planner' | 'shopping' | 'favourites' | 'prep'
 
@@ -39,6 +39,7 @@ export default function Home() {
   const [guideRefreshKey, setGuideRefreshKey] = useState(0)
   const [shoppingVersion, setShoppingVersion] = useState(0)
   const [swappingId, setSwappingId] = useState<string | null>(null)
+  const [fillingFromDiscover, setFillingFromDiscover] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -289,6 +290,55 @@ export default function Home() {
     }
   }, [weeklyPlan, tasteMemory, settings])
 
+  const handleFillFromDiscover = useCallback(async () => {
+    if (!weeklyPlan) return
+    setFillingFromDiscover(true)
+    const hearted = recipes.filter(r => favourites.some(f => f.id === r.id))
+    const slots = weeklyPlan.slots.filter(s => settings.activeDays.includes(s.day))
+    const lunchSlots = slots.filter(s => s.mealType === 'lunch')
+    const dinnerSlots = slots.filter(s => s.mealType === 'dinner')
+
+    // Place hearted recipes into matching slots
+    const updatedSlots = weeklyPlan.slots.map(slot => {
+      if (!settings.activeDays.includes(slot.day)) return slot
+      const pool = hearted.filter(r => r.mealType.includes(slot.mealType))
+      const slotIndex = (slot.mealType === 'lunch' ? lunchSlots : dinnerSlots).findIndex(s => s.day === slot.day && s.mealType === slot.mealType)
+      return pool[slotIndex] ? { ...slot, recipe: pool[slotIndex] } : slot
+    })
+
+    const filledIds = new Set(updatedSlots.filter(s => s.recipe).map(s => s.recipe!.id))
+    const emptySlots = updatedSlots.filter(s => settings.activeDays.includes(s.day) && !s.recipe)
+
+    let finalSlots = updatedSlots
+    if (emptySlots.length > 0) {
+      try {
+        const budgetPerMeal = settings.weeklyBudgetNZD / 14
+        const res = await fetch('/api/smart-fill', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tasteMemory,
+            settings: { ...settings, activeDays: emptySlots.map(s => s.day).filter((d, i, a) => a.indexOf(d) === i) },
+            mood: settings.mood,
+            favouriteNames: hearted.map(r => r.name),
+          }),
+        })
+        if (res.ok) {
+          const { assignedRecipes } = await res.json()
+          finalSlots = updatedSlots.map(slot => {
+            if (filledIds.has(slot.recipe?.id ?? '')) return slot
+            const match = assignedRecipes.find((r: { assignedDay: string; assignedMealType: string }) => r.assignedDay === slot.day && r.assignedMealType === slot.mealType)
+            return match ? { ...slot, recipe: match } : slot
+          })
+        }
+      } catch { /* leave empties as-is */ }
+    }
+
+    handlePlanUpdate({ ...weeklyPlan, slots: finalSlots })
+    setFillingFromDiscover(false)
+    setTab('planner')
+  }, [weeklyPlan, recipes, favourites, settings, tasteMemory])
+
   const handleLockWeek = useCallback(async () => {
     if (!weeklyPlan) return
     setLockingWeek(true)
@@ -412,14 +462,26 @@ export default function Home() {
               <span className="text-sm font-semibold text-gray-700">
                 {loading ? 'Finding recipes...' : `${recipes.length} recipes`}
               </span>
-              <button
-                onClick={() => generateRecipes(true)}
-                disabled={loading}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500 text-white text-sm font-medium disabled:opacity-50 hover:bg-emerald-600 transition-colors"
-              >
-                <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-                Refresh
-              </button>
+              <div className="flex items-center gap-2">
+                {recipes.some(r => favourites.some(f => f.id === r.id)) && (
+                  <button
+                    onClick={handleFillFromDiscover}
+                    disabled={fillingFromDiscover || !weeklyPlan}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-500 text-white text-sm font-medium disabled:opacity-50 hover:bg-violet-600 transition-colors"
+                  >
+                    <Sparkles size={13} className={fillingFromDiscover ? 'animate-pulse' : ''} />
+                    {fillingFromDiscover ? 'Filling...' : 'Fill Week'}
+                  </button>
+                )}
+                <button
+                  onClick={() => generateRecipes(true)}
+                  disabled={loading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500 text-white text-sm font-medium disabled:opacity-50 hover:bg-emerald-600 transition-colors"
+                >
+                  <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+                  Refresh
+                </button>
+              </div>
             </div>
 
             {error && (
