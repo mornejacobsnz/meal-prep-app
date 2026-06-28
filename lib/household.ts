@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { Recipe, WeeklyPlan, TasteMemory, AppSettings } from './types'
+import { StoredPlanGuide } from './storage'
 
 const LOCAL_KEY = 'mealprep_household_id'
 const LOCAL_CODE_KEY = 'mealprep_household_code'
@@ -107,4 +108,7 @@ export const sync = {
 
   getSettings: (hid: string, fallback: AppSettings) => syncGet<AppSettings>(hid, 'settings', fallback),
   saveSettings: (hid: string, settings: AppSettings) => syncSet(hid, 'settings', settings),
+
+  getPlanGuide: (hid: string) => syncGet<StoredPlanGuide | null>(hid, 'planGuide', null),
+  savePlanGuide: (hid: string, guide: StoredPlanGuide) => syncSet(hid, 'planGuide', guide),
 }

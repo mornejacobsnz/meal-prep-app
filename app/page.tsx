@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { Recipe, WeeklyPlan, AppSettings, DayOfWeek, MealType, TasteMemory } from '@/lib/types'
-import { storage, DEFAULT_SETTINGS } from '@/lib/storage'
+import { storage, DEFAULT_SETTINGS, StoredPlanGuide } from '@/lib/storage'
 import { sync, getLocalHouseholdId, getLocalHouseholdCode, fetchHouseholdCode, leaveHousehold } from '@/lib/household'
 import FilterBar from '@/components/FilterBar'
 import BudgetSlider from '@/components/BudgetSlider'
@@ -63,16 +63,21 @@ export default function Home() {
 
   const loadFromSync = async (hid: string) => {
     const defaultPlan = storage.getWeeklyPlan()
-    const [s, f, p, tm] = await Promise.all([
+    const [s, f, p, tm, pg] = await Promise.all([
       sync.getSettings(hid, DEFAULT_SETTINGS),
       sync.getFavourites(hid),
       sync.getWeeklyPlan(hid, defaultPlan),
       sync.getTasteMemory(hid),
+      sync.getPlanGuide(hid),
     ])
     setSettings(s)
     setFavourites(f)
     setWeeklyPlan(p)
     setTasteMemory(tm)
+    if (pg) {
+      storage.savePlanGuideState(pg as StoredPlanGuide)
+      setGuideRefreshKey(k => k + 1)
+    }
   }
 
   const handleHouseholdReady = (hid: string, code: string) => {
@@ -360,12 +365,14 @@ export default function Home() {
       if (!res.ok) throw new Error('Failed')
       const { guide } = await res.json()
       const prev = storage.getPlanGuideState()
-      storage.savePlanGuideState({
+      const guideState = {
         guide,
         completedRecipeIds: [],
         lockedAt: new Date().toISOString(),
         carryOverRecipes: prev?.carryOverRecipes ?? [],
-      })
+      }
+      storage.savePlanGuideState(guideState)
+      if (householdId) sync.savePlanGuide(householdId, guideState)
       setGuideRefreshKey(k => k + 1)
       ;['mealprep_manual_shopping', 'mealprep_pantry_moved', 'mealprep_shopping_checked'].forEach(k => localStorage.removeItem(k))
       setShoppingVersion(v => v + 1)
