@@ -128,10 +128,6 @@ export default function PrepGuide({ plan, activeDays }: Props) {
 
       <div className="flex items-center justify-between">
         <h2 className="font-bold text-gray-900">Recipe Cards</h2>
-        <button onClick={handleNewWeek} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors">
-          <RotateCcw size={11} />
-          New week
-        </button>
       </div>
 
       {/* Pending recipe cards */}
