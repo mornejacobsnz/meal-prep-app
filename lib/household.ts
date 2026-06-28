@@ -58,6 +58,12 @@ export async function fetchHouseholdCode(householdId: string): Promise<string> {
   return ''
 }
 
+export function leaveHousehold(): void {
+  if (typeof window === 'undefined') return
+  localStorage.removeItem(LOCAL_KEY)
+  localStorage.removeItem(LOCAL_CODE_KEY)
+}
+
 export async function joinHousehold(code: string): Promise<string | null> {
   if (!supabase) return null
   const { data, error } = await supabase

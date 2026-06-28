@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Recipe, WeeklyPlan, AppSettings, DayOfWeek, MealType, TasteMemory } from '@/lib/types'
 import { storage, DEFAULT_SETTINGS } from '@/lib/storage'
-import { sync, getLocalHouseholdId, getLocalHouseholdCode, fetchHouseholdCode } from '@/lib/household'
+import { sync, getLocalHouseholdId, getLocalHouseholdCode, fetchHouseholdCode, leaveHousehold } from '@/lib/household'
 import FilterBar from '@/components/FilterBar'
 import BudgetSlider from '@/components/BudgetSlider'
 import RecipeCard from '@/components/RecipeCard'
@@ -77,6 +77,13 @@ export default function Home() {
     setHouseholdId(hid)
     setHouseholdCode(code)
     loadFromSync(hid)
+  }
+
+  const handleLeaveHousehold = () => {
+    leaveHousehold()
+    setHouseholdId(null)
+    setHouseholdCode('')
+    setShowHouseholdModal(false)
   }
 
   const handleSync = async () => {
@@ -559,6 +566,12 @@ export default function Home() {
               </button>
             </div>
             <p className="text-xs text-gray-400 text-center">App URL: meal-prep-app-rouge.vercel.app</p>
+            <button
+              onClick={handleLeaveHousehold}
+              className="w-full text-center text-xs text-red-400 hover:text-red-600 transition-colors py-1"
+            >
+              Leave household
+            </button>
           </div>
         </div>
       )}
