@@ -38,6 +38,7 @@ export default function Home() {
   const [lockingWeek, setLockingWeek] = useState(false)
   const [guideRefreshKey, setGuideRefreshKey] = useState(0)
   const [shoppingVersion, setShoppingVersion] = useState(0)
+  const [swappingId, setSwappingId] = useState<string | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -137,6 +138,36 @@ export default function Home() {
       setLoading(false)
     }
   }, [settings, tasteMemory])
+
+  const handleSwapRecipe = useCallback(async (recipeId: string) => {
+    setSwappingId(recipeId)
+    const current = recipes.find(r => r.id === recipeId)
+    try {
+      const budgetPerMeal = settings.weeklyBudgetNZD / 14
+      const mealType = current?.mealType?.[0] ?? settings.filters.mealType
+      const res = await fetch('/api/generate-recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filters: { ...settings.filters, mealType: mealType === 'both' ? 'lunch' : mealType },
+          budgetPerMeal,
+          lunchServings: settings.lunchServings,
+          dinnerServings: settings.dinnerServings,
+          tasteMemory,
+          mood: settings.mood,
+          count: 1,
+          exclude: recipes.map(r => r.name),
+        }),
+      })
+      if (!res.ok) throw new Error()
+      const { recipes: [newRecipe] } = await res.json()
+      if (newRecipe) setRecipes(prev => prev.map(r => r.id === recipeId ? newRecipe : r))
+    } catch {
+      // silently fail — card stays as-is
+    } finally {
+      setSwappingId(null)
+    }
+  }, [recipes, settings, tasteMemory])
 
   useEffect(() => {
     if (mounted && tab === 'discover' && recipes.length === 0) {
@@ -431,6 +462,8 @@ export default function Home() {
                             onRate={rating => handleRate(recipe, rating)}
                             onAddToPlanner={addToSlot ? () => handleAddToPlanner(recipe) : undefined}
                             onFillAll={addToSlot ? (mt) => handleFillAll(recipe, mt) : undefined}
+                            onSwap={() => handleSwapRecipe(recipe.id)}
+                            swapping={swappingId === recipe.id}
                             addToSlot={addToSlot}
                             servings={recipe.mealType.includes('lunch') ? settings.lunchServings : settings.dinnerServings}
                           />
@@ -451,6 +484,8 @@ export default function Home() {
                     onRate={rating => handleRate(recipe, rating)}
                     onAddToPlanner={addToSlot ? () => handleAddToPlanner(recipe) : undefined}
                     onFillAll={addToSlot ? (mt) => handleFillAll(recipe, mt) : undefined}
+                    onSwap={() => handleSwapRecipe(recipe.id)}
+                    swapping={swappingId === recipe.id}
                     addToSlot={addToSlot}
                     servings={recipe.mealType.includes('lunch') ? settings.lunchServings : settings.dinnerServings}
                   />

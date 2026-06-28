@@ -6,7 +6,7 @@ const client = new Anthropic()
 
 export async function POST(req: NextRequest) {
   try {
-    const { filters, budgetPerMeal, lunchServings, dinnerServings, tasteMemory, mood = '', count = 6 } = await req.json() as {
+    const { filters, budgetPerMeal, lunchServings, dinnerServings, tasteMemory, mood = '', count = 6, exclude = [] } = await req.json() as {
       filters: Filters
       budgetPerMeal: number
       lunchServings: number
@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
       tasteMemory: TasteMemory
       mood?: string
       count?: number
+      exclude?: string[]
     }
 
     const tagList: string[] = []
@@ -57,7 +58,7 @@ ${dietInstruction}
 - Budget: NZD $${budgetPerMeal.toFixed(2)} per meal
 - Tags required: ${tagList.length > 0 ? tagList.join(', ') : 'no specific restrictions'}
 - Servings: ${lunchServings} for lunch recipes, ${dinnerServings} for dinner recipes
-${likedContext}${dislikedContext}${likedIngredients}${dislikedIngredients}${mood ? `\nThis week's vibe/mood: ${mood} — lean strongly into this when choosing recipes.` : ''}
+${likedContext}${dislikedContext}${likedIngredients}${dislikedIngredients}${mood ? `\nThis week's vibe/mood: ${mood} — lean strongly into this when choosing recipes.` : ''}${exclude.length > 0 ? `\nDo NOT generate any of these recipes (already shown): ${exclude.join(', ')}` : ''}
 
 Return ONLY a valid JSON array. Each recipe must follow this exact structure:
 {

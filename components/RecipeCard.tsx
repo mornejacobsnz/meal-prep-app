@@ -1,6 +1,6 @@
 'use client'
 import { Recipe, MealType } from '@/lib/types'
-import { Clock, DollarSign, Heart, ThumbsDown, ThumbsUp, Users, ChevronDown, ChevronUp, Plus, CopyPlus } from 'lucide-react'
+import { Clock, DollarSign, Heart, ThumbsDown, ThumbsUp, Users, ChevronDown, ChevronUp, Plus, CopyPlus, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 
 interface Props {
@@ -10,6 +10,8 @@ interface Props {
   onRate: (rating: 'liked' | 'disliked' | 'neutral') => void
   onAddToPlanner?: () => void
   onFillAll?: (mealType: MealType) => void
+  onSwap?: () => void
+  swapping?: boolean
   addToSlot?: { day: string; mealType: MealType } | null
   servings?: number
 }
@@ -22,7 +24,7 @@ const TAG_STYLES: Record<string, string> = {
   'meal-prep-friendly': 'bg-purple-100 text-purple-700',
 }
 
-export default function RecipeCard({ recipe, isFavourite, onFavourite, onRate, onAddToPlanner, onFillAll, addToSlot, servings }: Props) {
+export default function RecipeCard({ recipe, isFavourite, onFavourite, onRate, onAddToPlanner, onFillAll, onSwap, swapping, addToSlot, servings }: Props) {
   const [expanded, setExpanded] = useState(false)
   const [ratingFeedback, setRatingFeedback] = useState<'liked' | 'disliked' | null>(null)
   const [dismissing, setDismissing] = useState(false)
@@ -103,6 +105,16 @@ export default function RecipeCard({ recipe, isFavourite, onFavourite, onRate, o
             >
               <CopyPlus size={14} />
               All {addToSlot.mealType}s
+            </button>
+          )}
+          {onSwap && (
+            <button
+              onClick={onSwap}
+              disabled={swapping}
+              className="p-2 rounded-xl bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors disabled:opacity-40"
+              title="Swap for a different recipe"
+            >
+              <RefreshCw size={14} className={swapping ? 'animate-spin' : ''} />
             </button>
           )}
           <button
