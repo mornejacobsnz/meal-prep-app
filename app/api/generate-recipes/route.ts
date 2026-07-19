@@ -77,7 +77,6 @@ Return ONLY a valid JSON array. Each recipe must follow this exact structure:
   "steps": ["Step 1...", "Step 2..."],
   "tags": ["simple","quick","under-30-min","kid-friendly"] (include only applicable tags),
   "nutrition": { "calories": 450, "protein": "35g", "carbs": "40g", "fat": "12g" },
-  // nutrition values are PER SERVING (per person), not total
   "createdAt": "${new Date().toISOString()}"
 }
 
@@ -92,6 +91,7 @@ UNIT RULES — follow these exactly, no exceptions:
 - Canned goods (tomatoes, beans, coconut milk): always "g"
 - Bread, wraps, tortillas: always "slices" or "pieces"
 
+Nutrition values must be PER SERVING (per person), not totals for the whole batch.
 Use realistic NZD supermarket prices. Keep recipes practical, delicious, and varied. No duplicate recipes from the liked list.`
 
     const message = await client.messages.create({
@@ -104,7 +104,9 @@ Use realistic NZD supermarket prices. Keep recipes practical, delicious, and var
     const jsonMatch = text.match(/\[[\s\S]*\]/)
     if (!jsonMatch) throw new Error('No JSON array found in response')
 
-    const recipes: Recipe[] = JSON.parse(jsonMatch[0])
+    // Strip JS-style comments the model occasionally includes (invalid in JSON)
+    const cleaned = jsonMatch[0].replace(/\/\/[^\n]*/g, '')
+    const recipes: Recipe[] = JSON.parse(cleaned)
     return NextResponse.json({ recipes })
   } catch (error) {
     console.error('Recipe generation error:', error)
