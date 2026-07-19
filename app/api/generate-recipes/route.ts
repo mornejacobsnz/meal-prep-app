@@ -2,9 +2,9 @@ import OpenAI from 'openai'
 import { NextRequest, NextResponse } from 'next/server'
 import { Recipe, Filters, TasteMemory } from '@/lib/types'
 
-const client = new OpenAI({
+const getClient = () => new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY,
+  apiKey: process.env.OPENROUTER_API_KEY ?? '',
 })
 
 export async function POST(req: NextRequest) {
@@ -97,7 +97,7 @@ UNIT RULES — follow these exactly, no exceptions:
 Nutrition values must be PER SERVING (per person), not totals for the whole batch.
 Use realistic NZD supermarket prices. Keep recipes practical, delicious, and varied. No duplicate recipes from the liked list.`
 
-    const message = await client.chat.completions.create({
+    const message = await getClient().chat.completions.create({
       model: 'meta-llama/llama-3.3-70b-instruct:free',
       max_tokens: 8192,
       messages: [{ role: 'user', content: prompt }],

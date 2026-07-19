@@ -2,9 +2,9 @@ import OpenAI from 'openai'
 import { NextRequest, NextResponse } from 'next/server'
 import { Recipe, DayOfWeek, MealType, TasteMemory, AppSettings } from '@/lib/types'
 
-const client = new OpenAI({
+const getClient = () => new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY,
+  apiKey: process.env.OPENROUTER_API_KEY ?? '',
 })
 
 export async function POST(req: NextRequest) {
@@ -119,7 +119,7 @@ UNIT RULES — follow exactly:
 
 Use realistic NZD supermarket prices. Make it feel like a thoughtful human meal planner chose these.`
 
-    const message = await client.chat.completions.create({
+    const message = await getClient().chat.completions.create({
       model: 'meta-llama/llama-3.3-70b-instruct:free',
       max_tokens: 8192,
       messages: [{ role: 'user', content: prompt }],
