@@ -98,7 +98,7 @@ Nutrition values must be PER SERVING (per person), not totals for the whole batc
 Use realistic NZD supermarket prices. Keep recipes practical, delicious, and varied. No duplicate recipes from the liked list.`
 
     const message = await getClient().chat.completions.create({
-      model: 'google/gemma-4-31b-it:free',
+      model: 'openai/gpt-oss-20b:free',
       max_tokens: 8192,
       messages: [{ role: 'user', content: prompt }],
     })

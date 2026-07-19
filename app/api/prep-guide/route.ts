@@ -65,7 +65,7 @@ Rules:
 - Return ONLY the JSON, no other text`
 
     const message = await getClient().chat.completions.create({
-      model: 'google/gemma-4-31b-it:free',
+      model: 'openai/gpt-oss-20b:free',
       max_tokens: 8192,
       messages: [{ role: 'user', content: prompt }],
     })
