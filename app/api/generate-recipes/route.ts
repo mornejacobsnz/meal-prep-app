@@ -1,8 +1,11 @@
-import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 import { NextRequest, NextResponse } from 'next/server'
 import { Recipe, Filters, TasteMemory } from '@/lib/types'
 
-const client = new Anthropic()
+const client = new OpenAI({
+  baseURL: 'https://openrouter.ai/api/v1',
+  apiKey: process.env.OPENROUTER_API_KEY,
+})
 
 export async function POST(req: NextRequest) {
   try {
@@ -94,13 +97,13 @@ UNIT RULES — follow these exactly, no exceptions:
 Nutrition values must be PER SERVING (per person), not totals for the whole batch.
 Use realistic NZD supermarket prices. Keep recipes practical, delicious, and varied. No duplicate recipes from the liked list.`
 
-    const message = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+    const message = await client.chat.completions.create({
+      model: 'meta-llama/llama-3.3-70b-instruct:free',
       max_tokens: 8192,
       messages: [{ role: 'user', content: prompt }],
     })
 
-    const text = message.content[0].type === 'text' ? message.content[0].text : ''
+    const text = message.choices[0]?.message?.content ?? ''
     const jsonMatch = text.match(/\[[\s\S]*\]/)
     if (!jsonMatch) throw new Error('No JSON array found in response')
 

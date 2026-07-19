@@ -1,8 +1,11 @@
-import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 import { NextRequest, NextResponse } from 'next/server'
 import { Recipe, DayOfWeek, MealType, TasteMemory, AppSettings } from '@/lib/types'
 
-const client = new Anthropic()
+const client = new OpenAI({
+  baseURL: 'https://openrouter.ai/api/v1',
+  apiKey: process.env.OPENROUTER_API_KEY,
+})
 
 export async function POST(req: NextRequest) {
   try {
@@ -98,7 +101,6 @@ Return ONLY a valid JSON array of ${totalRecipes} recipe objects with an additio
   "steps": ["Step 1...", "Step 2..."],
   "tags": ["simple","under-30-min","kid-friendly","meal-prep-friendly"] (only applicable),
   "nutrition": { "calories": 450, "protein": "35g", "carbs": "40g", "fat": "12g" },
-  // nutrition values are PER SERVING (per person), not total
   "createdAt": "${new Date().toISOString()}"
 }
 
@@ -117,13 +119,13 @@ UNIT RULES — follow exactly:
 
 Use realistic NZD supermarket prices. Make it feel like a thoughtful human meal planner chose these.`
 
-    const message = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 16000,
+    const message = await client.chat.completions.create({
+      model: 'meta-llama/llama-3.3-70b-instruct:free',
+      max_tokens: 8192,
       messages: [{ role: 'user', content: prompt }],
     })
 
-    const text = message.content[0].type === 'text' ? message.content[0].text : ''
+    const text = message.choices[0]?.message?.content ?? ''
     const jsonMatch = text.match(/\[[\s\S]*\]/)
     if (!jsonMatch) throw new Error('No JSON array found in response')
 

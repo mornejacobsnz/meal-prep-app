@@ -1,8 +1,11 @@
-import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 import { NextRequest, NextResponse } from 'next/server'
 import { Recipe } from '@/lib/types'
 
-const client = new Anthropic()
+const client = new OpenAI({
+  baseURL: 'https://openrouter.ai/api/v1',
+  apiKey: process.env.OPENROUTER_API_KEY,
+})
 
 export async function POST(req: NextRequest) {
   try {
@@ -61,13 +64,13 @@ Rules:
 - Keep tip practical and specific to the dish, not generic cooking advice
 - Return ONLY the JSON, no other text`
 
-    const message = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+    const message = await client.chat.completions.create({
+      model: 'meta-llama/llama-3.3-70b-instruct:free',
       max_tokens: 8192,
       messages: [{ role: 'user', content: prompt }],
     })
 
-    const text = message.content[0].type === 'text' ? message.content[0].text : ''
+    const text = message.choices[0]?.message?.content ?? ''
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error('No JSON found in response')
 
