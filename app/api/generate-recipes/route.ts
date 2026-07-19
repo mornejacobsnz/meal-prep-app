@@ -104,11 +104,11 @@ Use realistic NZD supermarket prices. Keep recipes practical, delicious, and var
     })
 
     const text = message.choices[0]?.message?.content ?? ''
-    // Strip markdown code fences and JS comments, then extract JSON array
-    const stripped = text.replace(/```(?:json)?\n?/g, '').replace(/\/\/[^\n]*/g, '')
-    const jsonMatch = stripped.match(/\[[\s\S]*\]/)
-    if (!jsonMatch) throw new Error('No JSON array found in response')
-    const recipes: Recipe[] = JSON.parse(jsonMatch[0])
+    const start = text.indexOf('[')
+    const end = text.lastIndexOf(']')
+    if (start === -1 || end <= start) throw new Error('No JSON array found in response')
+    const jsonStr = text.slice(start, end + 1).replace(/\/\/[^\n]*/g, '')
+    const recipes: Recipe[] = JSON.parse(jsonStr)
     return NextResponse.json({ recipes })
   } catch (error) {
     console.error('Recipe generation error:', error)

@@ -126,11 +126,11 @@ Use realistic NZD supermarket prices. Make it feel like a thoughtful human meal 
     })
 
     const text = message.choices[0]?.message?.content ?? ''
-    const stripped = text.replace(/```(?:json)?\n?/g, '').replace(/\/\/[^\n]*/g, '')
-    const jsonMatch = stripped.match(/\[[\s\S]*\]/)
-    if (!jsonMatch) throw new Error('No JSON array found in response')
-
-    const assignedRecipes: (Recipe & { assignedDay: DayOfWeek; assignedMealType: MealType })[] = JSON.parse(jsonMatch[0])
+    const start = text.indexOf('[')
+    const end = text.lastIndexOf(']')
+    if (start === -1 || end <= start) throw new Error('No JSON array found in response')
+    const jsonStr = text.slice(start, end + 1).replace(/\/\/[^\n]*/g, '')
+    const assignedRecipes: (Recipe & { assignedDay: DayOfWeek; assignedMealType: MealType })[] = JSON.parse(jsonStr)
 
     return NextResponse.json({ assignedRecipes })
   } catch (error) {
