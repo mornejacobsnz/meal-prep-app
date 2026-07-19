@@ -71,7 +71,8 @@ Rules:
     })
 
     const text = message.choices[0]?.message?.content ?? ''
-    const jsonMatch = text.match(/\{[\s\S]*\}/)
+    const stripped = text.replace(/```(?:json)?\n?/g, '').replace(/\/\/[^\n]*/g, '')
+    const jsonMatch = stripped.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error('No JSON found in response')
 
     const guide = JSON.parse(jsonMatch[0])

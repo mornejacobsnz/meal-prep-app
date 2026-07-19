@@ -126,7 +126,8 @@ Use realistic NZD supermarket prices. Make it feel like a thoughtful human meal 
     })
 
     const text = message.choices[0]?.message?.content ?? ''
-    const jsonMatch = text.match(/\[[\s\S]*\]/)
+    const stripped = text.replace(/```(?:json)?\n?/g, '').replace(/\/\/[^\n]*/g, '')
+    const jsonMatch = stripped.match(/\[[\s\S]*\]/)
     if (!jsonMatch) throw new Error('No JSON array found in response')
 
     const assignedRecipes: (Recipe & { assignedDay: DayOfWeek; assignedMealType: MealType })[] = JSON.parse(jsonMatch[0])
