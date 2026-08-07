@@ -6,7 +6,7 @@ const client = new Anthropic()
 
 export async function POST(req: NextRequest) {
   try {
-    const { filters, budgetPerMeal, lunchServings, dinnerServings, tasteMemory, mood = '', count = 6, exclude = [] } = await req.json() as {
+    const { filters, budgetPerMeal, lunchServings, dinnerServings, tasteMemory, mood = '', count = 6, exclude = [], stream: useStream = false } = await req.json() as {
       filters: Filters
       budgetPerMeal: number
       lunchServings: number
@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
       mood?: string
       count?: number
       exclude?: string[]
+      stream?: boolean
     }
 
     const tagList: string[] = []
@@ -50,18 +51,7 @@ export async function POST(req: NextRequest) {
       ? `- Generate EXACTLY 5 lunch recipes and EXACTLY 5 dinner recipes (10 total). Lunch recipes must have mealType: ["lunch"] and dinner recipes must have mealType: ["dinner"].`
       : `- Generate ${count} ${mealTypeText} recipes. Each must have mealType: ["${filters.mealType}"].`
 
-    const prompt = `Generate ${isBoth ? 10 : count} varied ${mealTypeText} recipes for weekly meal prep.
-
-Requirements:
-${splitInstruction}
-${dietInstruction}
-- Budget: NZD $${budgetPerMeal.toFixed(2)} per meal
-- Tags required: ${tagList.length > 0 ? tagList.join(', ') : 'no specific restrictions'}
-- Servings: ${lunchServings} for lunch recipes, ${dinnerServings} for dinner recipes
-${likedContext}${dislikedContext}${likedIngredients}${dislikedIngredients}${mood ? `\nThis week's vibe/mood: ${mood} — lean strongly into this when choosing recipes.` : ''}${exclude.length > 0 ? `\nDo NOT generate any of these recipes (already shown): ${exclude.join(', ')}` : ''}
-
-Return ONLY a valid JSON array. Each recipe must follow this exact structure:
-{
+    const recipeStructure = `{
   "id": "unique-kebab-case-id",
   "name": "Recipe Name",
   "description": "One sentence description",
@@ -78,7 +68,23 @@ Return ONLY a valid JSON array. Each recipe must follow this exact structure:
   "tags": ["simple","quick","under-30-min","kid-friendly"] (include only applicable tags),
   "nutrition": { "calories": 450, "protein": "35g", "carbs": "40g", "fat": "12g" },
   "createdAt": "${new Date().toISOString()}"
-}
+}`
+
+    const formatInstruction = useStream
+      ? `Output each recipe as a single minified JSON object on its own line. One recipe per line. No array wrapper. No text before or after. Each line must be a complete valid JSON object matching this structure:\n${recipeStructure}`
+      : `Return ONLY a valid JSON array. Each recipe must follow this exact structure:\n${recipeStructure}`
+
+    const prompt = `Generate ${isBoth ? 10 : count} varied ${mealTypeText} recipes for weekly meal prep.
+
+Requirements:
+${splitInstruction}
+${dietInstruction}
+- Budget: NZD $${budgetPerMeal.toFixed(2)} per meal
+- Tags required: ${tagList.length > 0 ? tagList.join(', ') : 'no specific restrictions'}
+- Servings: ${lunchServings} for lunch recipes, ${dinnerServings} for dinner recipes
+${likedContext}${dislikedContext}${likedIngredients}${dislikedIngredients}${mood ? `\nThis week's vibe/mood: ${mood} — lean strongly into this when choosing recipes.` : ''}${exclude.length > 0 ? `\nDo NOT generate any of these recipes (already shown): ${exclude.join(', ')}` : ''}
+
+${formatInstruction}
 
 UNIT RULES — follow these exactly, no exceptions:
 - Meat, fish, tofu, halloumi: always "g"
@@ -94,6 +100,41 @@ UNIT RULES — follow these exactly, no exceptions:
 Nutrition values must be PER SERVING (per person), not totals for the whole batch.
 Use realistic NZD supermarket prices. Keep recipes practical, delicious, and varied. No duplicate recipes from the liked list.`
 
+    if (useStream) {
+      const stream = client.messages.stream({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 4096,
+        messages: [{ role: 'user', content: prompt }],
+      })
+
+      const encoder = new TextEncoder()
+      const readable = new ReadableStream({
+        async start(controller) {
+          try {
+            for await (const chunk of stream) {
+              if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+                controller.enqueue(encoder.encode(chunk.delta.text))
+              }
+            }
+          } finally {
+            controller.close()
+          }
+        },
+        cancel() {
+          stream.abort()
+        },
+      })
+
+      return new Response(readable, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'X-Accel-Buffering': 'no',
+          'Cache-Control': 'no-cache',
+        },
+      })
+    }
+
+    // Non-streaming path (used for single recipe swaps)
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 4096,

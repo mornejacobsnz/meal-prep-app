@@ -7,6 +7,7 @@ const KEYS = {
   settings: 'mealprep_settings',
   recipeCache: 'mealprep_recipe_cache',
   planGuide: 'mealprep_plan_guide',
+  lastRecipes: 'mealprep_last_recipes',
 }
 
 export interface CarryOverRecipe {
@@ -138,4 +139,8 @@ export const storage = {
   clearRecipeCache: () => {
     if (typeof window !== 'undefined') localStorage.removeItem(KEYS.recipeCache)
   },
+
+  // No-TTL backup — always shows last-known recipes even if Supabase is slow or fails
+  getLastRecipes: (): Recipe[] => get<Recipe[]>(KEYS.lastRecipes, []),
+  saveLastRecipes: (recipes: Recipe[]) => set(KEYS.lastRecipes, recipes),
 }

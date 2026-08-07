@@ -53,6 +53,9 @@ export default function Home() {
       } else {
         fetchHouseholdCode(hid).then(code => { if (code) setHouseholdCode(code) })
       }
+      // Show last known recipes immediately while Supabase loads in background
+      const lastRecipes = storage.getLastRecipes()
+      if (lastRecipes.length > 0) setRecipes(lastRecipes)
       loadFromSync(hid)
     } else {
       setSettings(storage.getSettings())
@@ -76,7 +79,10 @@ export default function Home() {
     setFavourites(f)
     setWeeklyPlan(p)
     setTasteMemory(tm)
-    if (r.length > 0) setRecipes(r)
+    if (r.length > 0) {
+      setRecipes(r)
+      storage.saveLastRecipes(r)
+    }
     if (pg) {
       storage.savePlanGuideState(pg as StoredPlanGuide)
       setGuideRefreshKey(k => k + 1)
@@ -123,6 +129,8 @@ export default function Home() {
 
     setLoading(true)
     setError(null)
+    setRecipes([])
+
     try {
       const res = await fetch('/api/generate-recipes', {
         method: 'POST',
@@ -135,15 +143,60 @@ export default function Home() {
           tasteMemory,
           mood: settings.mood,
           count: settings.filters.mealType === 'both' ? 10 : 6,
+          stream: true,
         }),
       })
       if (!res.ok) throw new Error('Failed to generate recipes')
-      const { recipes: newRecipes } = await res.json()
-      setRecipes(newRecipes)
+      if (!res.body) throw new Error('No stream body')
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      const newRecipes: Recipe[] = []
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed.startsWith('{')) continue
+          try {
+            const recipe = JSON.parse(trimmed) as Recipe
+            if (recipe.id && recipe.name) {
+              newRecipes.push(recipe)
+              setRecipes(prev => [...prev, recipe])
+            }
+          } catch { /* incomplete line, wait for more */ }
+        }
+      }
+
+      // Flush any remaining buffer
+      const remaining = buffer.trim()
+      if (remaining.startsWith('{')) {
+        try {
+          const recipe = JSON.parse(remaining) as Recipe
+          if (recipe.id && recipe.name) {
+            newRecipes.push(recipe)
+            setRecipes(prev => [...prev, recipe])
+          }
+        } catch { /* discard malformed trailing chunk */ }
+      }
+
+      if (newRecipes.length === 0) throw new Error('No recipes received')
+
       storage.saveRecipeCache(newRecipes, filterKey)
+      storage.saveLastRecipes(newRecipes)
       if (householdId) sync.saveRecipes(householdId, newRecipes)
     } catch {
       setError('Could not generate recipes. Please try again.')
+      // Restore last known recipes rather than leaving a blank screen
+      const fallback = storage.getLastRecipes()
+      if (fallback.length > 0) setRecipes(fallback)
     } finally {
       setLoading(false)
     }
