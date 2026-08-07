@@ -96,7 +96,7 @@ Use realistic NZD supermarket prices. Keep recipes practical, delicious, and var
 
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 8192,
+      max_tokens: 4096,
       messages: [{ role: 'user', content: prompt }],
     })
 

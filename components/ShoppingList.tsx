@@ -102,6 +102,7 @@ function aggregateIngredients(plan: WeeklyPlan, activeDays: DayOfWeek[]): Aggreg
 
   plan.slots.filter(s => activeDays.includes(s.day)).forEach(slot => {
     if (!slot.recipe) return
+    if (!Array.isArray(slot.recipe.ingredients)) return
     slot.recipe.ingredients.forEach(ing => {
       const normName = normalizeIngredientName(ing.name)
       const normUnit = normalizeUnit(ing.unit)

@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Recipe, WeeklyPlan, AppSettings, DayOfWeek, MealType, TasteMemory } from '@/lib/types'
 import { storage, DEFAULT_SETTINGS, StoredPlanGuide } from '@/lib/storage'
-import { sync, getLocalHouseholdId, getLocalHouseholdCode, fetchHouseholdCode, leaveHousehold } from '@/lib/household'
+import { sync, syncGetAll, getLocalHouseholdId, getLocalHouseholdCode, fetchHouseholdCode, leaveHousehold } from '@/lib/household'
 import FilterBar from '@/components/FilterBar'
 import BudgetSlider from '@/components/BudgetSlider'
 import RecipeCard from '@/components/RecipeCard'
@@ -40,6 +40,7 @@ export default function Home() {
   const [shoppingVersion, setShoppingVersion] = useState(0)
   const [swappingId, setSwappingId] = useState<string | null>(null)
   const [fillingFromDiscover, setFillingFromDiscover] = useState(false)
+  const [pendingFillAction, setPendingFillAction] = useState<'smart' | 'discover' | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -63,17 +64,20 @@ export default function Home() {
 
   const loadFromSync = async (hid: string) => {
     const defaultPlan = storage.getWeeklyPlan()
-    const [s, f, p, tm, pg] = await Promise.all([
-      sync.getSettings(hid, DEFAULT_SETTINGS),
-      sync.getFavourites(hid),
-      sync.getWeeklyPlan(hid, defaultPlan),
-      sync.getTasteMemory(hid),
-      sync.getPlanGuide(hid),
-    ])
+    const all = await syncGetAll(hid)
+
+    const s = (all['settings'] as AppSettings) ?? DEFAULT_SETTINGS
+    const f = (all['favourites'] as Recipe[]) ?? []
+    const p = (all['weeklyPlan'] as WeeklyPlan) ?? defaultPlan
+    const tm = (all['tasteMemory'] as TasteMemory) ?? { liked: [], disliked: [], likedIngredients: [], dislikedIngredients: [], history: [] }
+    const pg = (all['planGuide'] as StoredPlanGuide | null) ?? null
+    const r = (all['recipes'] as Recipe[]) ?? []
+
     setSettings(s)
     setFavourites(f)
     setWeeklyPlan(p)
     setTasteMemory(tm)
+    if (r.length > 0) setRecipes(r)
     if (pg) {
       storage.savePlanGuideState(pg as StoredPlanGuide)
       setGuideRefreshKey(k => k + 1)
@@ -138,12 +142,13 @@ export default function Home() {
       const { recipes: newRecipes } = await res.json()
       setRecipes(newRecipes)
       storage.saveRecipeCache(newRecipes, filterKey)
+      if (householdId) sync.saveRecipes(householdId, newRecipes)
     } catch {
       setError('Could not generate recipes. Please try again.')
     } finally {
       setLoading(false)
     }
-  }, [settings, tasteMemory])
+  }, [settings, tasteMemory, householdId])
 
   const handleSwapRecipe = useCallback(async (recipeId: string) => {
     setSwappingId(recipeId)
@@ -264,21 +269,21 @@ export default function Home() {
     saveSettings(updated)
   }
 
-  const handleSmartFill = useCallback(async () => {
-    if (!weeklyPlan) return
+  const hasPlanMeals = weeklyPlan?.slots.some(s => s.recipe) ?? false
+
+  const doSmartFill = useCallback(async (basePlan: WeeklyPlan) => {
     setSmartFilling(true)
     try {
-      const smartSettings = { ...settings }
       const res = await fetch('/api/smart-fill', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tasteMemory, settings: smartSettings, mood: settings.mood, favouriteNames: favourites.map(r => r.name) }),
+        body: JSON.stringify({ tasteMemory, settings, mood: settings.mood, favouriteNames: favourites.map(r => r.name) }),
       })
       if (!res.ok) throw new Error('Smart fill failed')
       const { assignedRecipes } = await res.json()
       const updated: WeeklyPlan = {
-        ...weeklyPlan,
-        slots: weeklyPlan.slots.map(slot => {
+        ...basePlan,
+        slots: basePlan.slots.map(slot => {
           const match = assignedRecipes.find(
             (r: { assignedDay: string; assignedMealType: string }) =>
               r.assignedDay === slot.day && r.assignedMealType === slot.mealType
@@ -293,18 +298,16 @@ export default function Home() {
     } finally {
       setSmartFilling(false)
     }
-  }, [weeklyPlan, tasteMemory, settings])
+  }, [tasteMemory, settings, favourites])
 
-  const handleFillFromDiscover = useCallback(async () => {
-    if (!weeklyPlan) return
+  const doFillFromDiscover = useCallback(async (basePlan: WeeklyPlan) => {
     setFillingFromDiscover(true)
     const hearted = recipes.filter(r => favourites.some(f => f.id === r.id))
-    const slots = weeklyPlan.slots.filter(s => settings.activeDays.includes(s.day))
+    const slots = basePlan.slots.filter(s => settings.activeDays.includes(s.day))
     const lunchSlots = slots.filter(s => s.mealType === 'lunch')
     const dinnerSlots = slots.filter(s => s.mealType === 'dinner')
 
-    // Place hearted recipes into matching slots
-    const updatedSlots = weeklyPlan.slots.map(slot => {
+    const updatedSlots = basePlan.slots.map(slot => {
       if (!settings.activeDays.includes(slot.day)) return slot
       const pool = hearted.filter(r => r.mealType.includes(slot.mealType))
       const slotIndex = (slot.mealType === 'lunch' ? lunchSlots : dinnerSlots).findIndex(s => s.day === slot.day && s.mealType === slot.mealType)
@@ -317,7 +320,6 @@ export default function Home() {
     let finalSlots = updatedSlots
     if (emptySlots.length > 0) {
       try {
-        const budgetPerMeal = settings.weeklyBudgetNZD / 14
         const res = await fetch('/api/smart-fill', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -339,10 +341,22 @@ export default function Home() {
       } catch { /* leave empties as-is */ }
     }
 
-    handlePlanUpdate({ ...weeklyPlan, slots: finalSlots })
+    handlePlanUpdate({ ...basePlan, slots: finalSlots })
     setFillingFromDiscover(false)
     setTab('planner')
-  }, [weeklyPlan, recipes, favourites, settings, tasteMemory])
+  }, [recipes, favourites, settings, tasteMemory])
+
+  const handleSmartFill = useCallback(() => {
+    if (!weeklyPlan) return
+    if (hasPlanMeals) { setPendingFillAction('smart'); return }
+    doSmartFill(weeklyPlan)
+  }, [weeklyPlan, hasPlanMeals, doSmartFill])
+
+  const handleFillFromDiscover = useCallback(() => {
+    if (!weeklyPlan) return
+    if (hasPlanMeals) { setPendingFillAction('discover'); return }
+    doFillFromDiscover(weeklyPlan)
+  }, [weeklyPlan, hasPlanMeals, doFillFromDiscover])
 
   const handleLockWeek = useCallback(async () => {
     if (!weeklyPlan) return
@@ -472,7 +486,7 @@ export default function Home() {
               <div className="flex items-center gap-2">
                 {recipes.some(r => favourites.some(f => f.id === r.id)) && (
                   <button
-                    onClick={handleFillFromDiscover}
+                    onClick={() => handleFillFromDiscover()}
                     disabled={fillingFromDiscover || !weeklyPlan}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-500 text-white text-sm font-medium disabled:opacity-50 hover:bg-violet-600 transition-colors"
                   >
@@ -573,7 +587,7 @@ export default function Home() {
               onSlotClick={handleSlotClick}
               activeDays={settings.activeDays}
               onActiveDaysChange={handleActiveDaysChange}
-              onSmartFill={handleSmartFill}
+              onSmartFill={() => handleSmartFill()}
               smartFilling={smartFilling}
             />
             {weeklyPlan.slots.some(s => settings.activeDays.includes(s.day) && s.recipe) && (
@@ -677,6 +691,46 @@ export default function Home() {
             >
               Leave household
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* New week confirmation modal */}
+      {pendingFillAction && weeklyPlan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-6" onClick={() => setPendingFillAction(null)}>
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-gray-900 text-lg">New week?</h3>
+            <p className="text-sm text-gray-500">You still have meals in your planner. Do you want to clear them before filling?</p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => {
+                  const cleared = { ...weeklyPlan, slots: weeklyPlan.slots.map(s => ({ ...s, recipe: null })) }
+                  handlePlanUpdate(cleared)
+                  const action = pendingFillAction
+                  setPendingFillAction(null)
+                  if (action === 'smart') doSmartFill(cleared)
+                  else doFillFromDiscover(cleared)
+                }}
+                className="w-full py-3 rounded-2xl bg-emerald-500 text-white font-semibold text-sm hover:bg-emerald-600 transition-colors"
+              >
+                Clear & fill fresh
+              </button>
+              <button
+                onClick={() => {
+                  const plan = weeklyPlan
+                  const action = pendingFillAction
+                  setPendingFillAction(null)
+                  if (action === 'smart') doSmartFill(plan)
+                  else doFillFromDiscover(plan)
+                }}
+                className="w-full py-3 rounded-2xl bg-gray-100 text-gray-700 font-semibold text-sm hover:bg-gray-200 transition-colors"
+              >
+                Keep existing & fill gaps
+              </button>
+              <button onClick={() => setPendingFillAction(null)} className="w-full py-2 text-xs text-gray-400 hover:text-gray-600">
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -88,6 +88,17 @@ async function syncGet<T>(householdId: string, key: string, fallback: T): Promis
   return data ? (data.value as T) : fallback
 }
 
+// Fetch all keys for a household in one round-trip
+export async function syncGetAll(householdId: string): Promise<Record<string, unknown>> {
+  if (!supabase) return {}
+  const { data } = await supabase
+    .from('household_data')
+    .select('key, value')
+    .eq('household_id', householdId)
+  if (!data) return {}
+  return Object.fromEntries(data.map(row => [row.key, row.value]))
+}
+
 async function syncSet<T>(householdId: string, key: string, value: T): Promise<void> {
   if (!supabase) return
   await supabase
@@ -111,4 +122,7 @@ export const sync = {
 
   getPlanGuide: (hid: string) => syncGet<StoredPlanGuide | null>(hid, 'planGuide', null),
   savePlanGuide: (hid: string, guide: StoredPlanGuide) => syncSet(hid, 'planGuide', guide),
+
+  getRecipes: (hid: string) => syncGet<Recipe[]>(hid, 'recipes', []),
+  saveRecipes: (hid: string, recipes: Recipe[]) => syncSet(hid, 'recipes', recipes),
 }
