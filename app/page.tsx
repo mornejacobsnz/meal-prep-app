@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Recipe, WeeklyPlan, AppSettings, DayOfWeek, MealType, TasteMemory } from '@/lib/types'
 import { storage, DEFAULT_SETTINGS, StoredPlanGuide } from '@/lib/storage'
-import { sync, syncGetAll, getLocalHouseholdId, getLocalHouseholdCode, fetchHouseholdCode, leaveHousehold } from '@/lib/household'
+import { sync, getLocalHouseholdId, getLocalHouseholdCode, fetchHouseholdCode, leaveHousehold } from '@/lib/household'
 import FilterBar from '@/components/FilterBar'
 import BudgetSlider from '@/components/BudgetSlider'
 import RecipeCard from '@/components/RecipeCard'
@@ -64,15 +64,14 @@ export default function Home() {
 
   const loadFromSync = async (hid: string) => {
     const defaultPlan = storage.getWeeklyPlan()
-    const all = await syncGetAll(hid)
-
-    const s = (all['settings'] as AppSettings) ?? DEFAULT_SETTINGS
-    const f = (all['favourites'] as Recipe[]) ?? []
-    const p = (all['weeklyPlan'] as WeeklyPlan) ?? defaultPlan
-    const tm = (all['tasteMemory'] as TasteMemory) ?? { liked: [], disliked: [], likedIngredients: [], dislikedIngredients: [], history: [] }
-    const pg = (all['planGuide'] as StoredPlanGuide | null) ?? null
-    const r = (all['recipes'] as Recipe[]) ?? []
-
+    const [s, f, p, tm, pg, r] = await Promise.all([
+      sync.getSettings(hid, DEFAULT_SETTINGS),
+      sync.getFavourites(hid),
+      sync.getWeeklyPlan(hid, defaultPlan),
+      sync.getTasteMemory(hid),
+      sync.getPlanGuide(hid),
+      sync.getRecipes(hid),
+    ])
     setSettings(s)
     setFavourites(f)
     setWeeklyPlan(p)
